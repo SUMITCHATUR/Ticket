@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Bus Ticket Booking System
 
 A complete bus ticket management system with payment processing and QR code scanning capabilities.
@@ -236,3 +237,6 @@ For support and questions, please create an issue in the repository.
 ---
 
 **Note**: This is a college mini project demonstrating full-stack development capabilities with modern web technologies.
+=======
+# Ticket
+>>>>>>> 9e9d4e6158ebc4197775fb4d02d887b1920b0557
