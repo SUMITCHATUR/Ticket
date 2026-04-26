@@ -41,6 +41,37 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = async (credentials) => {
+    // Always try demo mode first in production
+    if (import.meta.env.MODE === 'production') {
+      if (credentials.username === 'admin' && credentials.password === 'admin123') {
+        const mockToken = 'mock-token-for-demo'
+        localStorage.setItem('token', mockToken)
+        setUser({
+          username: 'admin',
+          full_name: 'System Administrator',
+          email: 'admin@busticket.com',
+          role: 'admin'
+        })
+        toast.success('Demo login successful!')
+        return true
+      } else if (credentials.username === 'conductor' && credentials.password === 'conductor123') {
+        const mockToken = 'mock-token-for-demo'
+        localStorage.setItem('token', mockToken)
+        setUser({
+          username: 'conductor',
+          full_name: 'Bus Conductor',
+          email: 'conductor@busticket.com',
+          role: 'conductor'
+        })
+        toast.success('Demo login successful!')
+        return true
+      }
+      // If credentials don't match demo, show error
+      toast.error('Invalid credentials. Use admin/admin123 or conductor/conductor123')
+      return false
+    }
+
+    // For development, try real API
     try {
       const response = await api.post('/auth/login', credentials)
       const { access_token } = response.data
@@ -58,33 +89,6 @@ export const AuthProvider = ({ children }) => {
       toast.success('Login successful!')
       return true
     } catch (error) {
-      // Fallback for deployed version when backend is not available
-      if (import.meta.env.MODE === 'production' && error.code === 'ERR_NETWORK') {
-        // Mock login for demo purposes
-        if (credentials.username === 'admin' && credentials.password === 'admin123') {
-          const mockToken = 'mock-token-for-demo'
-          localStorage.setItem('token', mockToken)
-          setUser({
-            username: 'admin',
-            full_name: 'System Administrator',
-            email: 'admin@busticket.com',
-            role: 'admin'
-          })
-          toast.success('Demo login successful! (Backend not connected)')
-          return true
-        } else if (credentials.username === 'conductor' && credentials.password === 'conductor123') {
-          const mockToken = 'mock-token-for-demo'
-          localStorage.setItem('token', mockToken)
-          setUser({
-            username: 'conductor',
-            full_name: 'Bus Conductor',
-            email: 'conductor@busticket.com',
-            role: 'conductor'
-          })
-          toast.success('Demo login successful! (Backend not connected)')
-          return true
-        }
-      }
       toast.error(error.response?.data?.detail || 'Login failed')
       return false
     }
