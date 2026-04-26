@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 
 // Create axios instance
 const api = axios.create({
-  baseURL: '/api', // This will be proxied to backend
+  baseURL: import.meta.env.VITE_API_URL || '/api', // Use environment variable or fallback to proxy
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
