@@ -58,6 +58,33 @@ export const AuthProvider = ({ children }) => {
       toast.success('Login successful!')
       return true
     } catch (error) {
+      // Fallback for deployed version when backend is not available
+      if (import.meta.env.MODE === 'production' && error.code === 'ERR_NETWORK') {
+        // Mock login for demo purposes
+        if (credentials.username === 'admin' && credentials.password === 'admin123') {
+          const mockToken = 'mock-token-for-demo'
+          localStorage.setItem('token', mockToken)
+          setUser({
+            username: 'admin',
+            full_name: 'System Administrator',
+            email: 'admin@busticket.com',
+            role: 'admin'
+          })
+          toast.success('Demo login successful! (Backend not connected)')
+          return true
+        } else if (credentials.username === 'conductor' && credentials.password === 'conductor123') {
+          const mockToken = 'mock-token-for-demo'
+          localStorage.setItem('token', mockToken)
+          setUser({
+            username: 'conductor',
+            full_name: 'Bus Conductor',
+            email: 'conductor@busticket.com',
+            role: 'conductor'
+          })
+          toast.success('Demo login successful! (Backend not connected)')
+          return true
+        }
+      }
       toast.error(error.response?.data?.detail || 'Login failed')
       return false
     }
