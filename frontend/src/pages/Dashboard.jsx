@@ -25,14 +25,18 @@ const Dashboard = () => {
   }, [])
 
   const fetchDashboardData = async () => {
-    // Check if we're in production (deployed) environment
-    const isProduction = import.meta.env.PROD || 
-                       window.location.hostname !== 'localhost' && 
-                       window.location.hostname !== '127.0.0.1'
+    console.log('Dashboard data fetch started')
+    console.log('Current hostname:', window.location.hostname)
     
-    // Always use demo mode in production
-    if (isProduction) {
-      console.log('Using demo mode for production')
+    // ONLY use real API if explicitly on localhost:3000
+    const isLocalhostDev = window.location.hostname === 'localhost' && 
+                          window.location.port === '3000'
+    
+    console.log('Is localhost dev:', isLocalhostDev)
+    
+    // Use demo mode for everything except explicit localhost:3000
+    if (!isLocalhostDev) {
+      console.log('Using demo mode for dashboard')
       setStats({
         todayTickets: 25,
         totalRevenue: 12500,
@@ -50,6 +54,7 @@ const Dashboard = () => {
         database: 'Demo mode - Backend not connected'
       })
       setLoading(false)
+      console.log('Demo dashboard data loaded')
       return
     }
 

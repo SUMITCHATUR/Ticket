@@ -41,13 +41,18 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = async (credentials) => {
-    // Check if we're in production (deployed) environment
-    const isProduction = import.meta.env.PROD || 
-                       window.location.hostname !== 'localhost' && 
-                       window.location.hostname !== '127.0.0.1'
+    console.log('Login attempt:', credentials.username)
+    console.log('Current hostname:', window.location.hostname)
     
-    // Always use demo mode in production
-    if (isProduction) {
+    // ONLY use real API if explicitly on localhost:3000
+    const isLocalhostDev = window.location.hostname === 'localhost' && 
+                          window.location.port === '3000'
+    
+    console.log('Is localhost dev:', isLocalhostDev)
+    
+    // Use demo mode for everything except explicit localhost:3000
+    if (!isLocalhostDev) {
+      console.log('Using demo mode')
       if (credentials.username === 'admin' && credentials.password === 'admin123') {
         const mockToken = 'mock-token-for-demo'
         localStorage.setItem('token', mockToken)
@@ -58,6 +63,7 @@ export const AuthProvider = ({ children }) => {
           role: 'admin'
         })
         toast.success('Demo login successful!')
+        console.log('Demo admin login successful')
         return true
       } else if (credentials.username === 'conductor' && credentials.password === 'conductor123') {
         const mockToken = 'mock-token-for-demo'
@@ -69,14 +75,17 @@ export const AuthProvider = ({ children }) => {
           role: 'conductor'
         })
         toast.success('Demo login successful!')
+        console.log('Demo conductor login successful')
         return true
       }
       // If credentials don't match demo, show error
       toast.error('Invalid credentials. Use admin/admin123 or conductor/conductor123')
+      console.log('Demo login failed - invalid credentials')
       return false
     }
 
-    // For development (localhost), try real API
+    // ONLY for localhost:3000 development, try real API
+    console.log('Trying real API login')
     try {
       const response = await api.post('/auth/login', credentials)
       const { access_token } = response.data
@@ -92,8 +101,10 @@ export const AuthProvider = ({ children }) => {
       })
       
       toast.success('Login successful!')
+      console.log('Real API login successful')
       return true
     } catch (error) {
+      console.error('Real API login failed:', error)
       toast.error(error.response?.data?.detail || 'Login failed')
       return false
     }
