@@ -212,8 +212,8 @@ class PassengerBase(BaseModel):
     
     @validator('id_number')
     def validate_id_number(cls, v):
-        if not v or len(v.strip()) < 5:
-            raise ValueError('ID number must be at least 5 characters long')
+        if not v or len(v.strip()) < 2:
+            raise ValueError('ID number must be at least 2 characters long')
         return v.strip()
 
 class TicketBookingRequest(BaseModel):
@@ -223,6 +223,15 @@ class TicketBookingRequest(BaseModel):
     conductor_id: int
     payment_method: PaymentMethodEnum
     ticket_price: float
+
+    @validator('payment_method', pre=True)
+    def validate_payment_method(cls, v):
+        if isinstance(v, str):
+            v_lower = v.lower()
+            if v_lower == "cash": return "Cash"
+            if v_lower == "upi": return "UPI"
+            if v_lower == "online": return "Online"
+        return v
 
     @validator('bus_route_id', 'seat_id', 'conductor_id')
     def validate_positive_ids(cls, v):
@@ -253,16 +262,25 @@ class QRScanRequest(BaseModel):
         return v
 
 class PaymentRequest(BaseModel):
-    ticket_id: int
+    ticket_id: Optional[int] = None
     payment_amount: float
     payment_method: PaymentMethodEnum
     transaction_id: Optional[str] = None
     upi_id: Optional[str] = None
     bank_name: Optional[str] = None
 
+    @validator('payment_method', pre=True)
+    def validate_payment_method(cls, v):
+        if isinstance(v, str):
+            v_lower = v.lower()
+            if v_lower == "cash": return "Cash"
+            if v_lower == "upi": return "UPI"
+            if v_lower == "online": return "Online"
+        return v
+
     @validator('ticket_id')
     def validate_ticket_id(cls, v):
-        if v <= 0:
+        if v is not None and v <= 0:
             raise ValueError('Ticket ID must be positive')
         return v
     

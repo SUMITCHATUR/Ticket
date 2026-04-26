@@ -85,9 +85,12 @@ def health_check():
 @app.post("/auth/login", response_model=Token)
 async def login(form_data: dict):
     try:
-        return await login_for_access_token(form_data)
+        return login_for_access_token(form_data)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        logger.error(f"Login error: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Login failed: {str(e)}")
 
 @app.get("/auth/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
@@ -391,6 +394,32 @@ async def get_conductors(
         logger.error(f"Get conductors error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get conductors")
 
+@app.get("/buses/")
+async def get_buses(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    try:
+        from app import models
+        buses = db.query(models.Bus).offset(skip).limit(limit).all()
+        return [
+            {
+                "bus_id": b.bus_id,
+                "bus_number": b.bus_number,
+                "bus_name": b.bus_name,
+                "bus_type": b.bus_type,
+                "total_seats": b.total_seats,
+                "available_seats": b.available_seats,
+                "status": b.status
+            }
+            for b in buses
+        ]
+    except Exception as e:
+        logger.error(f"Get buses error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get buses")
+
 @app.get("/routes/")
 async def get_routes(
     skip: int = 0,
@@ -435,6 +464,78 @@ async def get_routes(
     except Exception as e:
         logger.error(f"Get routes error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get routes")
+
+@app.get("/tickets/")
+async def get_tickets(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    try:
+        from app import models
+        tickets = db.query(models.Ticket).offset(skip).limit(limit).all()
+        return [
+            {
+                "ticket_id": t.ticket_id,
+                "ticket_number": t.ticket_number,
+                "passenger_id": t.passenger_id,
+                "booking_date": str(t.booking_date),
+                "journey_status": t.journey_status,
+                "ticket_price": float(t.ticket_price),
+                "qr_scan_status": t.qr_scan_status
+            }
+            for t in tickets
+        ]
+    except Exception as e:
+        logger.error(f"Get tickets error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get tickets")
+
+@app.get("/payments/summary")
+async def get_payment_summary_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    try:
+        summary = PaymentService.get_payment_summary(db)
+        return [
+            {
+                "payment_method": row[0],
+                "total_transactions": row[1],
+                "total_amount": float(row[2]) if row[2] else 0,
+                "average_amount": float(row[3]) if row[3] else 0,
+                "successful": row[4],
+                "failed": row[5],
+                "pending": row[6]
+            }
+            for row in summary
+        ]
+    except Exception as e:
+        logger.error(f"Get payment summary error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get payment summary")
+
+@app.get("/revenue/by-route")
+async def get_revenue_by_route_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    try:
+        revenue = PaymentService.get_revenue_by_route(db)
+        return [
+            {
+                "route_id": row[0],
+                "route_name": row[1],
+                "source_city": row[2],
+                "destination_city": row[3],
+                "total_tickets": row[4],
+                "total_revenue": float(row[5]) if row[5] else 0,
+                "average_fare": float(row[6]) if row[6] else 0
+            }
+            for row in revenue
+        ]
+    except Exception as e:
+        logger.error(f"Get revenue by route error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get revenue by route")
 
 @app.get("/routes/{route_id}/available-seats")
 async def get_available_seats(

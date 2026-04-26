@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Ticket QR System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+            <div class="max-w-md w-full space-y-8 p-8">
+                <div class="text-center">
+                    <div class="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="qr-code" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-900">Bus Ticket QR System</h2>
+                    <p class="mt-2 text-sm text-gray-600">Generate QR Codes for Tickets</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <form onsubmit="login(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                                <input type="text" id="username" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter username">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" id="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter password">
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                                Sign In
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <p class="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</p>
+                        <div class="space-y-1 text-xs text-gray-600">
+                            <div><strong>Admin:</strong> admin / admin123</div>
+                            <div><strong>Conductor:</strong> conductor / conductor123</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Generation Screen -->
+        <div id="qrScreen" class="hidden min-h-screen bg-gray-50">
+            <!-- Navbar -->
+            <nav class="bg-white shadow-sm border-b border-gray-200">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between items-center h-16">
+                        <div class="flex items-center">
+                            <i data-lucide="qr-code" class="w-8 h-8 text-blue-600 mr-3"></i>
+                            <div>
+                                <h1 class="text-xl font-bold text-gray-900">Bus Ticket QR System</h1>
+                                <p class="text-xs text-gray-500">QR Code Generation</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <i data-lucide="user" class="w-4 h-4 text-blue-600"></i>
+                                </div>
+                                <span class="text-sm font-medium text-gray-900" id="userName">Admin</span>
+                            </div>
+                            <button onclick="logout()" class="text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm">
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <div class="max-w-6xl mx-auto p-6">
+                <!-- QR Generation Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- QR Generator -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Generate QR Code</h2>
+                        
+                        <!-- QR Type Selection -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">QR Code Type</label>
+                            <select id="qrType" onchange="updateQRForm()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="payment">Payment QR</option>
+                                <option value="upi">UPI QR</option>
+                                <option value="ticket">Ticket QR</option>
+                            </select>
+                        </div>
+
+                        <!-- Payment QR Form -->
+                        <div id="paymentForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Amount (Rs.)</label>
+                                <input type="number" id="paymentAmount" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter amount" value="550">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                                <select id="paymentMethod" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="UPI">UPI</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Online">Online</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- UPI QR Form -->
+                        <div id="upiForm" class="space-y-4 hidden">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">UPI ID</label>
+                                <input type="text" id="upiId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter UPI ID" value="demo@upi">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Amount (Rs.)</label>
+                                <input type="number" id="upiAmount" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter amount" value="550">
+                            </div>
+                        </div>
+
+                        <!-- Ticket QR Form -->
+                        <div id="ticketForm" class="space-y-4 hidden">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Passenger Name</label>
+                                <input type="text" id="passengerName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter passenger name" value="Rahul Sharma">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Route</label>
+                                <input type="text" id="route" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter route" value="Mumbai to Pune">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Seat Number</label>
+                                <input type="text" id="seatNumber" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter seat number" value="15A">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Amount (Rs.)</label>
+                                <input type="number" id="ticketAmount" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter amount" value="550">
+                            </div>
+                        </div>
+
+                        <!-- Generate Button -->
+                        <button onclick="generateQR()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors mt-4">
+                            <div class="flex items-center justify-center">
+                                <i data-lucide="qr-code" class="w-5 h-5 mr-2"></i>
+                                Generate QR Code
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- QR Display -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Generated QR Code</h2>
+                        
+                        <div id="qrDisplay" class="text-center">
+                            <div class="w-64 h-64 mx-auto bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                                <div class="text-center">
+                                    <i data-lucide="qr-code" class="w-16 h-16 text-gray-400 mx-auto mb-2"></i>
+                                    <p class="text-gray-500">QR Code will appear here</p>
+                                    <p class="text-sm text-gray-400 mt-1">Click "Generate QR Code" to create</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- QR Info -->
+                        <div id="qrInfo" class="mt-4 hidden">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-medium text-gray-900 mb-2">QR Code Information</h3>
+                                <div id="qrDetails" class="space-y-1 text-sm text-gray-600">
+                                    <!-- Details will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div id="qrActions" class="mt-4 hidden space-y-2">
+                            <button onclick="downloadQR()" class="w-full bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition-colors">
+                                <div class="flex items-center justify-center">
+                                    <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+                                    Download QR Code
+                                </div>
+                            </button>
+                            <button onclick="copyQR()" class="w-full bg-gray-600 text-white py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors">
+                                <div class="flex items-center justify-center">
+                                    <i data-lucide="copy" class="w-4 h-4 mr-2"></i>
+                                    Copy QR Data
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Section -->
+                <div class="mt-6 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Test QR Generation</h2>
+                    <div class="flex space-x-4">
+                        <button onclick="testQR()" class="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors">
+                            <div class="flex items-center">
+                                <i data-lucide="test-tube" class="w-4 h-4 mr-2"></i>
+                                Test QR API
+                            </div>
+                        </button>
+                        <button onclick="clearQR()" class="bg-gray-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors">
+                            <div class="flex items-center">
+                                <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+                                Clear QR
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status Messages -->
+                <div id="statusMessage" class="hidden mt-4 p-4 rounded-lg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let authToken = localStorage.getItem('token');
+        let currentQRData = null;
+        const API_BASE = 'http://localhost:8002';
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            
+            if (authToken) {
+                showQRScreen();
+            } else {
+                showLogin();
+            }
+        });
+
+        // Login function
+        async function login(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await axios.post(`${API_BASE}/auth/login`, {
+                    username: username,
+                    password: password
+                });
+
+                if (response.data.access_token) {
+                    authToken = response.data.access_token;
+                    localStorage.setItem('token', authToken);
+                    showQRScreen();
+                    showStatus('Login successful!', 'success');
+                }
+            } catch (error) {
+                showStatus('Login failed: ' + (error.response?.data?.detail || 'Invalid credentials'), 'error');
+            }
+        }
+
+        // Logout function
+        function logout() {
+            authToken = null;
+            localStorage.removeItem('token');
+            currentQRData = null;
+            showLogin();
+        }
+
+        // Show login screen
+        function showLogin() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('qrScreen').classList.add('hidden');
+        }
+
+        // Show QR screen
+        function showQRScreen() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('qrScreen').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // Update QR form based on type
+        function updateQRForm() {
+            const qrType = document.getElementById('qrType').value;
+            
+            // Hide all forms
+            document.getElementById('paymentForm').classList.add('hidden');
+            document.getElementById('upiForm').classList.add('hidden');
+            document.getElementById('ticketForm').classList.add('hidden');
+            
+            // Show selected form
+            document.getElementById(qrType + 'Form').classList.remove('hidden');
+        }
+
+        // Generate QR Code
+        async function generateQR() {
+            const qrType = document.getElementById('qrType').value;
+            let endpoint, data;
+
+            switch(qrType) {
+                case 'payment':
+                    endpoint = '/payment/create';
+                    data = {
+                        amount: parseFloat(document.getElementById('paymentAmount').value),
+                        payment_method: document.getElementById('paymentMethod').value
+                    };
+                    break;
+                case 'upi':
+                    endpoint = '/payment/upi/generate-qr';
+                    data = {
+                        amount: parseFloat(document.getElementById('upiAmount').value),
+                        payment_method: 'UPI',
+                        upi_id: document.getElementById('upiId').value
+                    };
+                    break;
+                case 'ticket':
+                    endpoint = '/tickets/book-with-payment';
+                    data = {
+                        booking_request: {
+                            passenger_name: document.getElementById('passengerName').value,
+                            route: document.getElementById('route').value,
+                            seat: document.getElementById('seatNumber').value,
+                            amount: parseFloat(document.getElementById('ticketAmount').value)
+                        },
+                        payment_request: {
+                            amount: parseFloat(document.getElementById('ticketAmount').value),
+                            payment_method: 'UPI'
+                        }
+                    };
+                    break;
+            }
+
+            try {
+                showStatus('Generating QR Code...', 'info');
+                const response = await axios.post(`${API_BASE}${endpoint}`, data);
+                
+                if (response.data.success) {
+                    currentQRData = response.data;
+                    displayQR(response.data);
+                    showStatus('QR Code generated successfully!', 'success');
+                } else {
+                    showStatus('Failed to generate QR Code', 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + (error.response?.data?.detail || error.message), 'error');
+            }
+        }
+
+        // Display QR Code
+        function displayQR(data) {
+            const qrDisplay = document.getElementById('qrDisplay');
+            const qrInfo = document.getElementById('qrInfo');
+            const qrActions = document.getElementById('qrActions');
+            
+            // Get QR data
+            let qrImageData = data.qr_code_data;
+            if (data.ticket && data.ticket.qr_code) {
+                qrImageData = data.ticket.qr_code;
+            }
+            
+            // Display QR image
+            qrDisplay.innerHTML = `
+                <div class="w-64 h-64 mx-auto bg-white rounded-lg p-4 border-2 border-gray-300">
+                    <img src="${qrImageData}" alt="Generated QR Code" class="w-full h-full object-contain">
+                </div>
+            `;
+            
+            // Display QR info
+            let details = '';
+            if (data.payment_id) {
+                details += `
+                    <div><strong>Payment ID:</strong> ${data.payment_id}</div>
+                    <div><strong>Amount:</strong> Rs. ${data.amount}</div>
+                    <div><strong>Payment Method:</strong> ${data.payment_method}</div>
+                `;
+            }
+            if (data.ticket) {
+                details += `
+                    <div><strong>Ticket ID:</strong> ${data.ticket.ticket_id}</div>
+                    <div><strong>Ticket Number:</strong> ${data.ticket.ticket_number}</div>
+                    <div><strong>Passenger:</strong> ${data.ticket.passenger}</div>
+                    <div><strong>Route:</strong> ${data.ticket.route}</div>
+                    <div><strong>Seat:</strong> ${data.ticket.seat}</div>
+                    <div><strong>Amount:</strong> Rs. ${data.ticket.amount}</div>
+                `;
+            }
+            
+            document.getElementById('qrDetails').innerHTML = details;
+            qrInfo.classList.remove('hidden');
+            qrActions.classList.remove('hidden');
+        }
+
+        // Test QR API
+        async function testQR() {
+            try {
+                showStatus('Testing QR API...', 'info');
+                const response = await axios.get(`${API_BASE}/qr/test`);
+                
+                if (response.data.success) {
+                    currentQRData = response.data;
+                    displayQR(response.data);
+                    showStatus('QR API test successful!', 'success');
+                }
+            } catch (error) {
+                showStatus('QR API test failed: ' + error.message, 'error');
+            }
+        }
+
+        // Clear QR
+        function clearQR() {
+            currentQRData = null;
+            document.getElementById('qrDisplay').innerHTML = `
+                <div class="w-64 h-64 mx-auto bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                    <div class="text-center">
+                        <i data-lucide="qr-code" class="w-16 h-16 text-gray-400 mx-auto mb-2"></i>
+                        <p class="text-gray-500">QR Code will appear here</p>
+                        <p class="text-sm text-gray-400 mt-1">Click "Generate QR Code" to create</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('qrInfo').classList.add('hidden');
+            document.getElementById('qrActions').classList.add('hidden');
+            lucide.createIcons();
+            showStatus('QR cleared', 'info');
+        }
+
+        // Download QR
+        function downloadQR() {
+            if (!currentQRData) return;
+            
+            let qrImageData = currentQRData.qr_code_data;
+            if (currentQRData.ticket && currentQRData.ticket.qr_code) {
+                qrImageData = currentQRData.ticket.qr_code;
+            }
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.href = qrImageData;
+            link.download = `qr-code-${Date.now()}.png`;
+            link.click();
+            
+            showStatus('QR Code downloaded!', 'success');
+        }
+
+        // Copy QR data
+        function copyQR() {
+            if (!currentQRData) return;
+            
+            const text = JSON.stringify(currentQRData, null, 2);
+            navigator.clipboard.writeText(text).then(() => {
+                showStatus('QR data copied to clipboard!', 'success');
+            }).catch(() => {
+                showStatus('Failed to copy QR data', 'error');
+            });
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.classList.remove('hidden');
+            
+            let bgColor = 'bg-blue-100 text-blue-800';
+            if (type === 'success') bgColor = 'bg-green-100 text-green-800';
+            if (type === 'error') bgColor = 'bg-red-100 text-red-800';
+            if (type === 'info') bgColor = 'bg-yellow-100 text-yellow-800';
+            
+            statusDiv.className = `mt-4 p-4 rounded-lg ${bgColor}`;
+            statusDiv.textContent = message;
+            
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

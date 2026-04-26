@@ -48,6 +48,7 @@ class User(BaseModel):
     username: str
     email: Optional[str] = None
     full_name: Optional[str] = None
+    role: Optional[str] = "conductor"
     disabled: Optional[bool] = False
 
 class Token(BaseModel):
@@ -56,14 +57,6 @@ class Token(BaseModel):
 
 # Mock users
 fake_users_db = {
-    "admin": {
-        "username": "admin",
-        "full_name": "System Administrator",
-        "email": "admin@busticket.com",
-        "hashed_password": SimpleAuth.hash_password("admin123"),
-        "disabled": False,
-        "role": "admin"
-    },
     "conductor": {
         "username": "conductor",
         "full_name": "Bus Conductor",
@@ -71,6 +64,14 @@ fake_users_db = {
         "hashed_password": SimpleAuth.hash_password("conductor123"),
         "disabled": False,
         "role": "conductor"
+    },
+    "admin": {
+        "username": "admin",
+        "full_name": "System Administrator",
+        "email": "admin@busticket.com",
+        "hashed_password": SimpleAuth.hash_password("admin123"),
+        "disabled": False,
+        "role": "admin"
     }
 }
 
@@ -107,16 +108,16 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-def check_admin_role(current_user: User = Depends(get_current_active_user)) -> User:
-    """Check admin role"""
-    if current_user.username != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return current_user
-
 def check_conductor_role(current_user: User = Depends(get_current_active_user)) -> User:
     """Check conductor role"""
-    if current_user.username not in ["admin", "conductor"]:
-        raise HTTPException(status_code=403, detail="Conductor access required")
+    if current_user.role not in ["conductor", "admin"]:
+        raise HTTPException(status_code=403, detail="Conductor or Admin role required")
+    return current_user
+
+def check_admin_role(current_user: User = Depends(get_current_active_user)) -> User:
+    """Check admin role"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin role required")
     return current_user
 
 def login_for_access_token(form_data: dict) -> Token:

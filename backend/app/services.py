@@ -86,29 +86,42 @@ class TicketBookingService:
             if seat:
                 seat.status = "Booked"
             
-            # 5. Create payment
-            transaction_id = f"TXN-{datetime.now().strftime('%Y-%m-%d')}-{ticket.ticket_id:03d}"
-            payment = models.Payment(
-                ticket_id=ticket.ticket_id,
-                payment_amount=ticket_price,
-                payment_method=payment_method,
-                payment_status="Success",
-                transaction_id=transaction_id,
-                payment_date=date.today(),
-                payment_time=datetime.now().time(),
-                payment_received_by=conductor_id
-            )
-            db.add(payment)
+            # 5. Create payment (check if already exists)
+            existing_payment = db.query(models.Payment).filter(models.Payment.ticket_id == ticket.ticket_id).first()
+            if not existing_payment:
+                transaction_id = f"TXN-{datetime.now().strftime('%Y-%m-%d')}-{ticket.ticket_id:03d}"
+                payment = models.Payment(
+                    ticket_id=ticket.ticket_id,
+                    payment_amount=ticket_price,
+                    payment_method=payment_method,
+                    payment_status="Success",
+                    transaction_id=transaction_id,
+                    payment_date=date.today(),
+                    payment_time=datetime.now().time(),
+                    payment_received_by=conductor_id
+                )
+                db.add(payment)
+            else:
+                # Update existing payment if needed
+                existing_payment.payment_method = payment_method
+                existing_payment.payment_status = "Success"
+                existing_payment.payment_amount = ticket_price
             
-            # 6. Create QR code
-            qr_data = f'{{"ticket_id":"{ticket_number}","passenger":"{passenger_name}","status":"valid"}}'
-            qr_code = models.QRCode(
-                ticket_id=ticket.ticket_id,
-                qr_code_id=qr_code_id,
-                qr_data=qr_data,
-                qr_validity_status="Valid"
-            )
-            db.add(qr_code)
+            # 6. Create QR code (check if already exists)
+            existing_qr = db.query(models.QRCode).filter(models.QRCode.ticket_id == ticket.ticket_id).first()
+            if not existing_qr:
+                qr_data = f'{{"ticket_id":"{ticket_number}","passenger":"{passenger_name}","status":"valid"}}'
+                qr_code = models.QRCode(
+                    ticket_id=ticket.ticket_id,
+                    qr_code_id=qr_code_id,
+                    qr_data=qr_data,
+                    qr_validity_status="Valid"
+                )
+                db.add(qr_code)
+            else:
+                # Update existing QR code if needed
+                existing_qr.qr_data = f'{{"ticket_id":"{ticket_number}","passenger":"{passenger_name}","status":"valid"}}'
+                existing_qr.qr_validity_status = "Valid"
             
             # 7. Update available seats in bus_routes
             bus_route = db.query(models.BusRoute).filter(models.BusRoute.bus_route_id == bus_route_id).first()

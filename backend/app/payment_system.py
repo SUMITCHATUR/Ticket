@@ -12,6 +12,12 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import json
 import hashlib
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import custom QR generator
+from custom_qr import CustomQRGenerator, generate_ticket_qr, generate_payment_qr
 
 # Payment Gateway Models
 class PaymentRequest(BaseModel):
@@ -32,6 +38,8 @@ class PaymentResponse(BaseModel):
     message: str
     expires_at: Optional[str] = None
 
+import urllib.parse
+
 class UPIPaymentRequest(BaseModel):
     upi_id: str
     amount: float
@@ -50,73 +58,54 @@ class QRCodeGenerator:
     
     @staticmethod
     def generate_payment_qr(payment_data: Dict) -> str:
-        """Generate QR code for payment"""
+        """Generate QR code for payment using custom QR generator"""
         try:
-            # Create QR code data
-            qr_data = {
-                "payment_id": payment_data.get("payment_id"),
-                "amount": payment_data.get("amount"),
-                "merchant": payment_data.get("merchant_name", "Bus Ticket System"),
-                "transaction_id": payment_data.get("transaction_id"),
-                "timestamp": datetime.now().isoformat(),
-                "expires_at": payment_data.get("expires_at")
-            }
-            
-            # Convert to JSON string
-            qr_string = json.dumps(qr_data, indent=2)
-            
-            # Generate QR code
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_L,
-                box_size=10,
-                border=4,
-            )
-            qr.add_data(qr_string)
-            qr.make(fit=True)
-            
-            # Create image
-            img = qr.make_image(fill_color="black", back_color="white")
-            
-            # Convert to base64
-            buffer = io.BytesIO()
-            img.save(buffer, format='PNG')
-            img_str = base64.b64encode(buffer.getvalue()).decode()
-            
-            return f"data:image/png;base64,{img_str}"
+            # Use custom QR generator for enhanced features
+            return generate_payment_qr(payment_data)
             
         except Exception as e:
             raise Exception(f"QR Code generation failed: {str(e)}")
     
     @staticmethod
     def generate_upi_qr(upi_data: UPIPaymentRequest) -> str:
-        """Generate UPI QR code"""
+        """Generate UPI QR code using custom QR generator"""
         try:
-            # UPI QR format: upi://pay?pa=UPI_ID&pn=MERCHANT_NAME&am=AMOUNT&cu=CURRENCY&tn=TRANSACTION_NOTE
-            upi_url = f"upi://pay?pa={upi_data.upi_id}&pn={upi_data.merchant_name}&am={upi_data.amount}&cu=INR&tn={upi_data.transaction_note}"
+            # Format amount and encode parameters
+            formatted_amount = "{:.2f}".format(upi_data.amount)
+            encoded_name = urllib.parse.quote(upi_data.merchant_name)
+            encoded_note = urllib.parse.quote(upi_data.transaction_note)
             
-            # Generate QR code
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_L,
-                box_size=10,
-                border=4,
-            )
-            qr.add_data(upi_url)
-            qr.make(fit=True)
+            # Add transaction reference for better app compatibility
+            txn_ref = f"BT{datetime.now().strftime('%Y%m%d%H%M%S')}"
             
-            # Create image
-            img = qr.make_image(fill_color="black", back_color="white")
+            # Create UPI URL with proper encoding, mode, tr and mc
+            upi_url = f"upi://pay?pa={upi_data.upi_id}&pn={encoded_name}&am={formatted_amount}&cu=INR&tn={encoded_note}&tr={txn_ref}&mc=0000&mode=02"
             
-            # Convert to base64
-            buffer = io.BytesIO()
-            img.save(buffer, format='PNG')
-            img_str = base64.b64encode(buffer.getvalue()).decode()
+            # Create UPI payment data for custom QR generator
+            upi_payment_data = {
+                "payment_id": f"UPI_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                "transaction_id": f"TXN_UPI_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                "amount": upi_data.amount,
+                "merchant_name": upi_data.merchant_name,
+                "upi_url": upi_url,
+                "expires_at": (datetime.now() + timedelta(minutes=15)).isoformat()
+            }
             
-            return f"data:image/png;base64,{img_str}"
+            # Use custom QR generator
+            return generate_payment_qr(upi_payment_data)
             
         except Exception as e:
             raise Exception(f"UPI QR Code generation failed: {str(e)}")
+    
+    @staticmethod
+    def generate_ticket_qr(ticket_data: Dict) -> str:
+        """Generate QR code for tickets using custom QR generator"""
+        try:
+            # Use custom QR generator for tickets
+            return generate_ticket_qr(ticket_data)
+            
+        except Exception as e:
+            raise Exception(f"Ticket QR Code generation failed: {str(e)}")
 
 class PaymentGateway:
     
@@ -154,7 +143,11 @@ class PaymentGateway:
                         transaction_note=f"Bus Ticket Payment - {payment_id}"
                     )
                     qr_code_data = QRCodeGenerator.generate_upi_qr(upi_request)
-                    upi_url = f"upi://pay?pa={request.upi_id}&pn=Bus Ticket System&am={request.amount}&cu=INR&tn=Bus Ticket Payment - {payment_id}"
+                    formatted_amount = "{:.2f}".format(request.amount)
+                    encoded_name = urllib.parse.quote("Bus Ticket System")
+                    encoded_note = urllib.parse.quote(f"Bus Ticket Payment - {payment_id}")
+                    txn_ref = f"BT{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                    upi_url = f"upi://pay?pa={request.upi_id}&pn={encoded_name}&am={formatted_amount}&cu=INR&tn={encoded_note}&tr={txn_ref}&mc=0000&mode=02"
                 else:
                     raise Exception("UPI ID is required for UPI payment")
                     
@@ -194,19 +187,14 @@ class PaymentGateway:
         """Verify payment status"""
         try:
             # In real implementation, this would check with payment gateway
-            # For demo, we'll simulate payment verification
-            
-            # Simulate payment success (80% chance)
-            import random
-            payment_success = random.random() > 0.2
-            
+            # For demo, we assume payment is received when the conductor confirms it.
             return {
-                "success": payment_success,
+                "success": True,
                 "payment_id": payment_id,
-                "status": "completed" if payment_success else "failed",
+                "status": "completed",
                 "verified_at": datetime.now().isoformat(),
-                "amount": None,  # Would fetch from database
-                "transaction_id": None
+                "amount": None,
+                "transaction_id": payment_id
             }
             
         except Exception as e:
@@ -249,20 +237,36 @@ class PaymentProcessor:
         try:
             from app import models
             
-            # Create payment record
-            payment = models.Payment(
-                ticket_id=ticket_data.get("ticket_id"),
-                payment_amount=ticket_data.get("amount"),
-                payment_method=ticket_data.get("payment_method"),
-                payment_status="Pending",
-                transaction_id=ticket_data.get("transaction_id"),
-                upi_id=ticket_data.get("upi_id"),
-                payment_date=datetime.now().date(),
-                payment_time=datetime.now().time(),
-                payment_received_by=ticket_data.get("conductor_id")
-            )
+            # Check if payment already exists
+            existing_payment = self.db.query(models.Payment).filter(
+                models.Payment.ticket_id == ticket_data.get("ticket_id")
+            ).first()
             
-            self.db.add(payment)
+            if existing_payment:
+                # Update existing payment
+                existing_payment.payment_amount = ticket_data.get("amount")
+                existing_payment.payment_method = ticket_data.get("payment_method")
+                existing_payment.payment_status = "Success"
+                existing_payment.transaction_id = ticket_data.get("transaction_id")
+                existing_payment.upi_id = ticket_data.get("upi_id")
+                existing_payment.payment_date = datetime.now().date()
+                existing_payment.payment_time = datetime.now().time()
+                existing_payment.payment_received_by = ticket_data.get("conductor_id")
+                payment = existing_payment
+            else:
+                # Create new payment record
+                payment = models.Payment(
+                    ticket_id=ticket_data.get("ticket_id"),
+                    payment_amount=ticket_data.get("amount"),
+                    payment_method=ticket_data.get("payment_method"),
+                    payment_status="Success",
+                    transaction_id=ticket_data.get("transaction_id"),
+                    upi_id=ticket_data.get("upi_id"),
+                    payment_date=datetime.now().date(),
+                    payment_time=datetime.now().time(),
+                    payment_received_by=ticket_data.get("conductor_id")
+                )
+                self.db.add(payment)
             self.db.flush()  # Get payment_id without committing
             
             # Generate QR code for payment
@@ -279,29 +283,46 @@ class PaymentProcessor:
                 # Update payment with gateway details
                 payment.transaction_id = payment_response.transaction_id
                 
-                # Create QR code record
-                qr_code = models.QRCode(
-                    ticket_id=ticket_data.get("ticket_id"),
-                    qr_code_id=payment_response.payment_id,
-                    qr_data=json.dumps({
+                # Check if QR code already exists
+                existing_qr = self.db.query(models.QRCode).filter(
+                    models.QRCode.ticket_id == ticket_data.get("ticket_id")
+                ).first()
+                
+                if existing_qr:
+                    # Update existing QR code
+                    existing_qr.qr_code_id = payment_response.payment_id
+                    existing_qr.qr_data = json.dumps({
                         "payment_id": payment_response.payment_id,
                         "amount": ticket_data.get("amount"),
                         "method": ticket_data.get("payment_method"),
                         "created_at": datetime.now().isoformat()
-                    }),
-                    qr_validity_status="Valid"
-                )
-                
-                self.db.add(qr_code)
+                    })
+                    existing_qr.qr_validity_status = "Valid"
+                else:
+                    # Create new QR code record
+                    qr_code = models.QRCode(
+                        ticket_id=ticket_data.get("ticket_id"),
+                        qr_code_id=payment_response.payment_id,
+                        qr_data=json.dumps({
+                            "payment_id": payment_response.payment_id,
+                            "amount": ticket_data.get("amount"),
+                            "method": ticket_data.get("payment_method"),
+                            "created_at": datetime.now().isoformat()
+                        }),
+                        qr_validity_status="Valid"
+                    )
+                    self.db.add(qr_code)
                 self.db.commit()
                 
                 return {
                     "success": True,
                     "payment_id": payment.payment_id,
+                    "transaction_id": payment_response.transaction_id,
                     "qr_code_data": payment_response.qr_code_data,
                     "payment_url": payment_response.payment_url,
                     "upi_url": payment_response.upi_url,
                     "expires_at": payment_response.expires_at,
+                    "payment_status": payment.payment_status,
                     "message": "Payment initiated successfully"
                 }
             else:

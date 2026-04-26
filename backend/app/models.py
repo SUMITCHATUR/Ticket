@@ -19,8 +19,8 @@ class Conductor(Base):
     # Relationships
     buses = relationship("Bus", back_populates="conductor")
     tickets_issued = relationship("Ticket", back_populates="conductor")
-    payments_received = relationship("Payment", back_populates="payment_received_by")
-    qr_scanned = relationship("QRCode", back_populates="last_scanned_by")
+    payments_received = relationship("Payment", back_populates="conductor_payment")
+    qr_scanned = relationship("QRCode", back_populates="scanned_by_conductor")
 
 class Bus(Base):
     __tablename__ = "buses"
@@ -150,7 +150,7 @@ class Payment(Base):
     
     # Relationships
     ticket = relationship("Ticket", back_populates="payment")
-    payment_received_by = relationship("Conductor", back_populates="payments_received")
+    conductor_payment = relationship("Conductor", back_populates="payments_received")
 
 class QRCode(Base):
     __tablename__ = "qr_codes"
@@ -168,4 +168,4 @@ class QRCode(Base):
     
     # Relationships
     ticket = relationship("Ticket", back_populates="qr_code")
-    last_scanned_by = relationship("Conductor", back_populates="qr_scanned")
+    scanned_by_conductor = relationship("Conductor", back_populates="qr_scanned")

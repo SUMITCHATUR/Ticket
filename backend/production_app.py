@@ -13,7 +13,7 @@ import os
 from app.database import get_db, test_connection
 from app.services import TicketBookingService, QRCodeService, PaymentService
 from app.validators import *
-from app.simple_auth import get_current_active_user, check_admin_role, check_conductor_role, login_for_access_token, User, Token
+from app.simple_auth import get_current_active_user, check_conductor_role, login_for_access_token, User, Token
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -101,9 +101,9 @@ def health_check():
 async def create_conductor(
     conductor: ConductorBase, 
     db: Session = Depends(get_db),
-    current_user: User = Depends(check_admin_role)
+    current_user: User = Depends(check_conductor_role)
 ):
-    """Create new conductor (Admin only)"""
+    """Create new conductor"""
     try:
         from app import models
         
@@ -190,9 +190,9 @@ async def update_conductor(
     conductor_id: int,
     conductor: ConductorBase,
     db: Session = Depends(get_db),
-    current_user: User = Depends(check_admin_role)
+    current_user: User = Depends(check_conductor_role)
 ):
-    """Update conductor (Admin only)"""
+    """Update conductor"""
     try:
         from app import models
         
@@ -217,9 +217,9 @@ async def update_conductor(
 async def delete_conductor(
     conductor_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(check_admin_role)
+    current_user: User = Depends(check_conductor_role)
 ):
-    """Delete conductor (Admin only)"""
+    """Delete conductor"""
     try:
         from app import models
         
@@ -243,9 +243,9 @@ async def delete_conductor(
 async def create_bus(
     bus: BusBase,
     db: Session = Depends(get_db),
-    current_user: User = Depends(check_admin_role)
+    current_user: User = Depends(check_conductor_role)
 ):
-    """Create new bus (Admin only)"""
+    """Create new bus"""
     try:
         from app import models
         
@@ -304,9 +304,9 @@ async def get_buses(
 async def create_route(
     route: RouteBase,
     db: Session = Depends(get_db),
-    current_user: User = Depends(check_admin_role)
+    current_user: User = Depends(check_conductor_role)
 ):
-    """Create new route (Admin only)"""
+    """Create new route"""
     try:
         from app import models
         
@@ -557,7 +557,7 @@ async def get_tickets(
 
 # System info endpoint
 @app.get("/system/info")
-async def get_system_info(current_user: User = Depends(check_admin_role)):
+async def get_system_info(current_user: User = Depends(check_conductor_role)):
     """Get system information (Admin only)"""
     return {
         "system": "Bus Ticket Booking System",

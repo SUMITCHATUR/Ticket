@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Ticket Booking System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+            <div class="max-w-md w-full space-y-8 p-8">
+                <div class="text-center">
+                    <div class="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="bus" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-900">Bus Ticket System</h2>
+                    <p class="mt-2 text-sm text-gray-600">Sign in to your account</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <form onsubmit="login(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                                <input type="text" id="username" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter username">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" id="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter password">
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                                Sign In
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <p class="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</p>
+                        <div class="space-y-1 text-xs text-gray-600">
+                            <div><strong>Admin:</strong> admin / admin123</div>
+                            <div><strong>Conductor:</strong> conductor / conductor123</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboardScreen" class="hidden min-h-screen bg-gray-50">
+            <!-- Navbar -->
+            <nav class="bg-white shadow-sm border-b border-gray-200">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between items-center h-16">
+                        <div class="flex items-center">
+                            <i data-lucide="bus" class="w-8 h-8 text-blue-600 mr-3"></i>
+                            <div>
+                                <h1 class="text-xl font-bold text-gray-900">Bus Ticket System</h1>
+                                <p class="text-xs text-gray-500">Conductor Mode</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <i data-lucide="user" class="w-4 h-4 text-blue-600"></i>
+                                </div>
+                                <span class="text-sm font-medium text-gray-900" id="userName">Admin</span>
+                            </div>
+                            <button onclick="logout()" class="text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm">
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <div class="flex">
+                <!-- Sidebar -->
+                <aside class="w-64 bg-white border-r border-gray-200 min-h-screen">
+                    <div class="p-4">
+                        <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Navigation</h2>
+                        <nav class="space-y-1">
+                            <button onclick="showPage('dashboard')" class="w-full text-left px-3 py-3 rounded-lg bg-blue-50 text-blue-700 border-r-2 border-blue-600">
+                                <i data-lucide="home" class="w-5 h-5 mr-3"></i>
+                                Dashboard
+                            </button>
+                            <button onclick="showPage('bookTicket')" class="w-full text-left px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                <i data-lucide="ticket" class="w-5 h-5 mr-3"></i>
+                                Book Ticket
+                            </button>
+                            <button onclick="showPage('viewTickets')" class="w-full text-left px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                <i data-lucide="list" class="w-5 h-5 mr-3"></i>
+                                View Tickets
+                            </button>
+                            <button onclick="showPage('reports')" class="w-full text-left px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i>
+                                Reports
+                            </button>
+                        </nav>
+                    </div>
+                </aside>
+
+                <!-- Page Content -->
+                <main class="flex-1 p-6">
+                    <!-- Dashboard Page -->
+                    <div id="dashboardPage" class="space-y-6">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+                            <p class="text-gray-600">Welcome back! Here's what's happening today.</p>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600">Today's Tickets</p>
+                                        <p class="text-2xl font-bold text-gray-900">24</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="ticket" class="w-6 h-6 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600">Revenue</p>
+                                        <p class="text-2xl font-bold text-gray-900">Rs. 12,450</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="indian-rupee" class="w-6 h-6 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600">Active Buses</p>
+                                        <p class="text-2xl font-bold text-gray-900">8</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="bus" class="w-6 h-6 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600">Active Routes</p>
+                                        <p class="text-2xl font-bold text-gray-900">12</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="activity" class="w-6 h-6 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Tickets -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Tickets</h2>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p class="font-medium text-gray-900">TKT-20240422-001</p>
+                                        <p class="text-sm text-gray-600">Rahul Sharma</p>
+                                        <p class="text-xs text-gray-500">Mumbai to Pune · Seat 15A</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-medium text-gray-900">Rs. 550</p>
+                                        <p className="text-xs text-gray-500">10:30 AM</p>
+                                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full mt-1">
+                                            Confirmed
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Book Ticket Page -->
+                    <div id="bookTicketPage" class="hidden space-y-6">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Book New Ticket</h1>
+                            <p class="text-gray-600">Complete your ticket booking in few simple steps</p>
+                        </div>
+
+                        <!-- Route Selection -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-4">Select Route</h2>
+                            <div id="routeList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Routes will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- View Tickets Page -->
+                    <div id="viewTicketsPage" class="hidden space-y-6">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">View Tickets</h1>
+                            <p class="text-gray-600">Manage and view all ticket bookings</p>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket Details</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Passenger</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Route</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ticketsList" class="bg-white divide-y divide-gray-200">
+                                        <!-- Tickets will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reports Page -->
+                    <div id="reportsPage" class="hidden space-y-6">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
+                            <p class="text-gray-600">Track your business performance and revenue</p>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-4">Payment Methods</h2>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Method</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transactions</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Success Rate</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="paymentList" class="bg-white divide-y divide-gray-200">
+                                        <!-- Payment data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let authToken = localStorage.getItem('token');
+        let currentUser = null;
+
+        // API configuration
+        const API_BASE = 'http://localhost:8001';
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            
+            if (authToken) {
+                showDashboard();
+            } else {
+                showLogin();
+            }
+        });
+
+        // Login function
+        async function login(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await axios.post(`${API_BASE}/auth/login`, {
+                    username: username,
+                    password: password
+                });
+
+                if (response.data.access_token) {
+                    authToken = response.data.access_token;
+                    localStorage.setItem('token', authToken);
+                    showDashboard();
+                }
+            } catch (error) {
+                alert('Login failed: ' + (error.response?.data?.detail || 'Invalid credentials'));
+            }
+        }
+
+        // Logout function
+        function logout() {
+            authToken = null;
+            localStorage.removeItem('token');
+            showLogin();
+        }
+
+        // Show login screen
+        function showLogin() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('dashboardScreen').classList.add('hidden');
+        }
+
+        // Show dashboard
+        function showDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+            loadDashboardData();
+        }
+
+        // Show specific page
+        function showPage(pageName) {
+            // Hide all pages
+            document.querySelectorAll('[id$="Page"]').forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // Show selected page
+            document.getElementById(pageName + 'Page').classList.remove('hidden');
+            
+            // Update navigation
+            document.querySelectorAll('aside button').forEach(btn => {
+                btn.classList.remove('bg-blue-50', 'text-blue-700', 'border-r-2', 'border-blue-600');
+                btn.classList.add('text-gray-700', 'hover:bg-gray-50');
+            });
+            
+            event.target.classList.remove('text-gray-700', 'hover:bg-gray-50');
+            event.target.classList.add('bg-blue-50', 'text-blue-700', 'border-r-2', 'border-blue-600');
+            
+            // Load page data
+            if (pageName === 'bookTicket') {
+                loadRoutes();
+            } else if (pageName === 'viewTickets') {
+                loadTickets();
+            } else if (pageName === 'reports') {
+                loadReports();
+            }
+        }
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                const response = await axios.get(`${API_BASE}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                currentUser = response.data;
+                document.getElementById('userName').textContent = currentUser.full_name || currentUser.username;
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
+        // Load routes
+        async function loadRoutes() {
+            try {
+                const response = await axios.get(`${API_BASE}/routes/`);
+                const routes = response.data;
+                
+                const routeList = document.getElementById('routeList');
+                routeList.innerHTML = routes.map(route => `
+                    <div class="p-4 border rounded-lg cursor-pointer hover:border-blue-300 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-medium text-gray-900">${route.route_name}</h3>
+                            <i data-lucide="indian-rupee" class="w-4 h-4 text-gray-400"></i>
+                        </div>
+                        <div class="flex items-center text-sm text-gray-600">
+                            <i data-lucide="map-pin" class="w-4 h-4 mr-1"></i>
+                            ${route.source_city} to ${route.destination_city}
+                        </div>
+                        <div class="flex items-center justify-between mt-2">
+                            <span class="text-sm text-gray-500">${route.distance_km} km</span>
+                            <span class="font-medium text-blue-600">Rs. ${route.base_fare}</span>
+                        </div>
+                    </div>
+                `).join('');
+                
+                lucide.createIcons();
+            } catch (error) {
+                console.error('Error loading routes:', error);
+                document.getElementById('routeList').innerHTML = '<p class="text-gray-500">Failed to load routes</p>';
+            }
+        }
+
+        // Load tickets
+        async function loadTickets() {
+            try {
+                const response = await axios.get(`${API_BASE}/tickets/`);
+                const tickets = response.data;
+                
+                const ticketsList = document.getElementById('ticketsList');
+                ticketsList.innerHTML = tickets.map(ticket => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div>
+                                <p class="font-medium text-gray-900">${ticket.ticket_number}</p>
+                                <p class="text-sm text-gray-500">${ticket.booking_date} at ${ticket.booking_time}</p>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div>
+                                <p class="font-medium text-gray-900">${ticket.passenger_name}</p>
+                                <p class="text-sm text-gray-500">${ticket.payment_method}</p>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div>
+                                <p class="font-medium text-gray-900">${ticket.route}</p>
+                                <p class="text-sm text-gray-500">Departs: ${ticket.departure_time}</p>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <p class="font-medium text-gray-900">Rs. ${ticket.amount}</p>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                ${ticket.status}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading tickets:', error);
+                document.getElementById('ticketsList').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Failed to load tickets</td></tr>';
+            }
+        }
+
+        // Load reports
+        async function loadReports() {
+            try {
+                const response = await axios.get(`${API_BASE}/payments/summary`);
+                const payments = response.data;
+                
+                const paymentList = document.getElementById('paymentList');
+                paymentList.innerHTML = payments.map(payment => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="capitalize font-medium text-gray-900">${payment.payment_method}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-900">
+                            ${payment.total_transactions}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-900">
+                            Rs. ${payment.total_amount.toLocaleString()}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                    <div class="bg-green-600 h-2 rounded-full" style="width: ${Math.round((payment.successful / payment.total_transactions) * 100)}%"></div>
+                                </div>
+                                <span class="text-sm text-gray-900">${Math.round((payment.successful / payment.total_transactions) * 100)}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading reports:', error);
+                document.getElementById('paymentList').innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Failed to load reports</td></tr>';
+            }
+        }
+    </script>
+</body>
+</html>
