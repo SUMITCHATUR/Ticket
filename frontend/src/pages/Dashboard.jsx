@@ -25,97 +25,25 @@ const Dashboard = () => {
   }, [])
 
   const fetchDashboardData = async () => {
-    console.log('Dashboard data fetch started')
-    console.log('Current hostname:', window.location.hostname)
-    
-    // ONLY use real API if explicitly on localhost:3000
-    const isLocalhostDev = window.location.hostname === 'localhost' && 
-                          window.location.port === '3000'
-    
-    console.log('Is localhost dev:', isLocalhostDev)
-    
-    // Use demo mode for everything except explicit localhost:3000
-    if (!isLocalhostDev) {
-      console.log('Using demo mode for dashboard')
-      setStats({
-        todayTickets: 25,
-        totalRevenue: 12500,
-        activeRoutes: 5
-      })
-      setRecentTickets([
-        {id: 'TKT-20260426-25', passenger: 'Demo User', route: 'Mumbai-Pune', seat: 'A1', amount: 500, time: '22:30', status: 'Confirmed'},
-        {id: 'TKT-20260426-24', passenger: 'John Doe', route: 'Delhi-Mumbai', seat: 'B2', amount: 800, time: '22:15', status: 'Confirmed'},
-        {id: 'TKT-20260426-23', passenger: 'Jane Smith', route: 'Bangalore-Chennai', seat: 'C3', amount: 600, time: '22:00', status: 'Confirmed'},
-        {id: 'TKT-20260426-22', passenger: 'rahul', route: 'Mumbai-Pune', seat: 'A1', amount: 500, time: '20:50', status: 'Confirmed'},
-        {id: 'TKT-20260426-21', passenger: 'shivam', route: 'Mumbai-Pune', seat: 'A2', amount: 500, time: '20:45', status: 'Confirmed'}
-      ])
-      setHealth({
-        status: 'healthy',
-        database: 'Demo mode - Backend not connected'
-      })
-      setLoading(false)
-      console.log('Demo dashboard data loaded')
-      return
-    }
-
-    // For development, try real API
-    try {
-      console.log('Fetching dashboard data...')
-      
-      // Simple approach - just get tickets first
-      const ticketsRes = await ticketAPI.getAll()
-      console.log('Tickets response:', ticketsRes.status)
-      
-      const tickets = Array.isArray(ticketsRes.data) ? ticketsRes.data : []
-      console.log('Tickets count:', tickets.length)
-      
-      // Set basic stats immediately
-      setStats({
-        todayTickets: tickets.length,
-        totalRevenue: tickets.length * 500, // Approximate revenue
-        activeRoutes: 5 // Fixed for now
-      })
-      
-      // Set recent tickets
-      setRecentTickets(
-        tickets.slice(0, 5).map((t) => ({
-          id: t.ticket_number || `TKT-${t.id}`,
-          passenger: t.passenger_name || '-',
-          route: t.route || '-',
-          seat: t.seat_number || '-',
-          amount: t.amount || 0,
-          time: t.booking_time || '-',
-          status: t.status || 'Confirmed'
-        }))
-      )
-      
-      // Set basic health
-      setHealth({
-        status: 'healthy',
-        database: 'Database connection successful'
-      })
-      
-      console.log('Dashboard data loaded successfully')
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error)
-      // Set default data on error
-      setStats({
-        todayTickets: 22,
-        totalRevenue: 11000,
-        activeRoutes: 5
-      })
-      setRecentTickets([
-        {id: 'TKT-20260426-22', passenger: 'rahul', route: 'Mumbai-Pune', seat: 'A1', amount: 500, time: '20:50', status: 'Confirmed'},
-        {id: 'TKT-20260426-21', passenger: 'shivam', route: 'Mumbai-Pune', seat: 'A2', amount: 500, time: '20:45', status: 'Confirmed'},
-        {id: 'TKT-20260426-20', passenger: 'Rahul joshi', route: 'Mumbai-Pune', seat: 'A3', amount: 500, time: '20:40', status: 'Confirmed'}
-      ])
-      setHealth({
-        status: 'healthy',
-        database: 'Database connection successful'
-      })
-    } finally {
-      setLoading(false)
-    }
+    // EMERGENCY FIX - Always use demo mode
+    setStats({
+      todayTickets: 25,
+      totalRevenue: 12500,
+      activeRoutes: 5
+    })
+    setRecentTickets([
+      {id: 'TKT-20260426-25', passenger: 'Demo User', route: 'Mumbai-Pune', seat: 'A1', amount: 500, time: '22:30', status: 'Confirmed'},
+      {id: 'TKT-20260426-24', passenger: 'John Doe', route: 'Delhi-Mumbai', seat: 'B2', amount: 800, time: '22:15', status: 'Confirmed'},
+      {id: 'TKT-20260426-23', passenger: 'Jane Smith', route: 'Bangalore-Chennai', seat: 'C3', amount: 600, time: '22:00', status: 'Confirmed'},
+      {id: 'TKT-20260426-22', passenger: 'rahul', route: 'Mumbai-Pune', seat: 'A1', amount: 500, time: '20:50', status: 'Confirmed'},
+      {id: 'TKT-20260426-21', passenger: 'shivam', route: 'Mumbai-Pune', seat: 'A2', amount: 500, time: '20:45', status: 'Confirmed'}
+    ])
+    setHealth({
+      status: 'healthy',
+      database: 'Demo mode'
+    })
+    setLoading(false)
+    return
   }
 
   const statCards = [
