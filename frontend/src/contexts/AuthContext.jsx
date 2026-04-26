@@ -41,8 +41,13 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = async (credentials) => {
-    // Always try demo mode first in production
-    if (import.meta.env.MODE === 'production') {
+    // Check if we're in production (deployed) environment
+    const isProduction = import.meta.env.PROD || 
+                       window.location.hostname !== 'localhost' && 
+                       window.location.hostname !== '127.0.0.1'
+    
+    // Always use demo mode in production
+    if (isProduction) {
       if (credentials.username === 'admin' && credentials.password === 'admin123') {
         const mockToken = 'mock-token-for-demo'
         localStorage.setItem('token', mockToken)
@@ -71,7 +76,7 @@ export const AuthProvider = ({ children }) => {
       return false
     }
 
-    // For development, try real API
+    // For development (localhost), try real API
     try {
       const response = await api.post('/auth/login', credentials)
       const { access_token } = response.data

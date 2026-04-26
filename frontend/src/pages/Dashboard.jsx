@@ -25,8 +25,13 @@ const Dashboard = () => {
   }, [])
 
   const fetchDashboardData = async () => {
+    // Check if we're in production (deployed) environment
+    const isProduction = import.meta.env.PROD || 
+                       window.location.hostname !== 'localhost' && 
+                       window.location.hostname !== '127.0.0.1'
+    
     // Always use demo mode in production
-    if (import.meta.env.MODE === 'production') {
+    if (isProduction) {
       console.log('Using demo mode for production')
       setStats({
         todayTickets: 25,
