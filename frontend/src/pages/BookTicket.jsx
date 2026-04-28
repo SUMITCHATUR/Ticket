@@ -542,7 +542,9 @@ const BookTicket = () => {
                   `}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-gray-900">{route.route_name}</h3>
+                    <h3 className="font-medium text-gray-900">
+                      {route.route_name || `${route.source_city} → ${route.destination_city}`}
+                    </h3>
                     <IndianRupee className="w-4 h-4 text-gray-400" />
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
@@ -550,7 +552,13 @@ const BookTicket = () => {
                     {route.source_city} to {route.destination_city}
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm text-gray-500">{route.distance_km} km</span>
+                    {route.departure_time ? (
+                      <span className="text-sm text-gray-500">{route.departure_time} – {route.arrival_time || '?'}</span>
+                    ) : route.distance_km ? (
+                      <span className="text-sm text-gray-500">{route.distance_km} km</span>
+                    ) : (
+                      <span className="text-sm text-gray-500">{route.bus_type || 'Bus'}</span>
+                    )}
                     <span className="font-medium text-primary-600">Rs. {route.base_fare}</span>
                   </div>
                 </div>

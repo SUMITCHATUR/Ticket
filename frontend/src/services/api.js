@@ -2,9 +2,16 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 
 // Create axios instance
+// VITE_API_URL should be your backend root (e.g. https://your-backend.onrender.com)
+// On Render: set VITE_API_URL in Environment Variables of the frontend service
+const rawBase = import.meta.env.VITE_API_URL || ''
+const baseURL = rawBase
+  ? rawBase.replace(/\/api\/?$/, '') + '/api'  // ensure exactly one /api suffix
+  : '/api'                                      // fallback: uses Vite dev proxy
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api', // Use environment variable or fallback to proxy
-  timeout: 10000,
+  baseURL,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },

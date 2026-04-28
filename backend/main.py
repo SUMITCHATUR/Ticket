@@ -511,18 +511,39 @@ async def verify_payment(
         logger.error(f"Payment verification error: {str(e)}")
         raise HTTPException(status_code=500, detail="Payment verification failed")
 
+class CombinedBookingRequest(BaseModel):
+    booking_request: TicketBookingRequest
+    payment_request: ValidatorPaymentRequest
+
 @app.post("/tickets/book-with-payment")
 @app.post("/api/tickets/book-with-payment")
 async def book_ticket_with_payment(
-    booking_request: TicketBookingRequest,
-    payment_request: ValidatorPaymentRequest,
+    combined: CombinedBookingRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(check_conductor_role)
 ):
+    booking_request = combined.booking_request
+    payment_request = combined.payment_request
     """Book ticket with integrated payment system"""
     try:
         logger.info(f"Booking ticket with payment: {payment_request.payment_method}")
-        
+
+        # Resolve bus_route_id: frontend sends route_id (routes table).
+        # Look up the matching bus_route_id from bus_routes table.
+        resolved_bus_route_id = booking_request.bus_route_id
+        bus_route_row = db.execute(
+            text("SELECT bus_route_id FROM bus_routes WHERE route_id = :rid LIMIT 1"),
+            {"rid": booking_request.bus_route_id}
+        ).fetchone()
+        if bus_route_row:
+            resolved_bus_route_id = bus_route_row[0]
+        else:
+            # If no bus_route exists yet, just use what was sent (will fail gracefully in service)
+            logger.warning(f"No bus_route found for route_id={booking_request.bus_route_id}, using as-is")
+
+        # payment_amount may not be set — use ticket_price as fallback
+        pay_amount = payment_request.payment_amount if payment_request.payment_amount else booking_request.ticket_price
+
         # Step 1: Create ticket booking
         booking_result = TicketBookingService.book_ticket(
             passenger_name=booking_request.passenger.passenger_name,
@@ -531,30 +552,30 @@ async def book_ticket_with_payment(
             gender=booking_request.passenger.gender,
             id_type=booking_request.passenger.id_type,
             id_number=booking_request.passenger.id_number,
-            bus_route_id=booking_request.bus_route_id,
+            bus_route_id=resolved_bus_route_id,
             seat_id=booking_request.seat_id,
             conductor_id=booking_request.conductor_id,
-            payment_method=payment_request.payment_method,
+            payment_method=str(payment_request.payment_method),
             ticket_price=booking_request.ticket_price,
             db=db
         )
-        
+
         if not booking_result["success"]:
-            raise HTTPException(status_code=400, detail=booking_result["message"])
-        
+            raise HTTPException(status_code=400, detail=booking_result.get("message", "Booking failed"))
+
         # Step 2: Create payment for the ticket
         payment_processor = PaymentProcessor(db)
         payment_data = {
             "ticket_id": booking_result["ticket_id"],
-            "amount": booking_request.ticket_price,
-            "payment_method": payment_request.payment_method,
+            "amount": pay_amount,
+            "payment_method": str(payment_request.payment_method),
             "upi_id": payment_request.upi_id,
             "conductor_id": booking_request.conductor_id,
             "transaction_id": booking_result.get("qr_code_id", "")
         }
-        
+
         payment_result = payment_processor.create_ticket_payment(payment_data)
-        
+
         if payment_result["success"]:
             return {
                 "success": True,
@@ -565,12 +586,12 @@ async def book_ticket_with_payment(
         else:
             error_msg = payment_result.get("error", "Unknown error")
             raise HTTPException(status_code=400, detail=f"Payment processing failed: {error_msg}")
-            
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Book ticket error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Ticket booking failed")
+        raise HTTPException(status_code=500, detail=f"Ticket booking failed: {str(e)}")
 
 @app.post("/payment/complete/{payment_id}")
 @app.post("/api/payment/complete/{payment_id}")
