@@ -1,9 +1,18 @@
 import os
 from flask import Flask, render_template
 
-# Configure explicit template folder so Flask can reliably locate HTML templates.
-template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
-app = Flask(__name__, template_folder=template_dir)
+# Configure explicit template and static folders so Flask can reliably locate assets.
+base_dir = os.path.dirname(os.path.abspath(__file__))
+template_dir = os.path.join(base_dir, "templates")
+static_dir = os.path.join(base_dir, "static")
+app = Flask(__name__, static_folder=static_dir, template_folder=template_dir)
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    return response
 
 @app.route("/")
 def home():

@@ -8,6 +8,7 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
   const [internalLoading, setInternalLoading] = useState(false)
   const [paymentId, setPaymentId] = useState(null)
   const [expiryTime, setExpiryTime] = useState(null)
+  const BASE_URL = typeof window !== 'undefined' ? window.location.origin : ''
 
   const qrCode = externalQrCode || internalQrCode
   const upiUrl = externalUpiUrl || internalUpiUrl
@@ -56,7 +57,7 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
       // Use external UPI ID if provided, otherwise fallback
       const targetUpiId = externalUpiId || 'test@upi'
       
-      const response = await fetch('/api/payment/create', {
+      const response = await fetch(`${BASE_URL}/api/payment/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +98,7 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
       expires_at: new Date(Date.now() + 15 * 60000).toISOString()
     }
 
-    fetch('/api/generate-qr', {
+    fetch(`${BASE_URL}/api/generate-qr`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
