@@ -8,7 +8,13 @@ if (!backendTarget) {
 }
 
 export default defineConfig({
+  base: '/',
   plugins: [react()],
+  build: {
+    outDir: '../static',
+    assetsDir: 'assets',
+    emptyOutDir: true,
+  },
   server: {
     port: 3000,
     proxy: {

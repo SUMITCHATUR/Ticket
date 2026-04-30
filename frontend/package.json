@@ -23,7 +23,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node -e \"require('fs').copyFileSync('deploy-simple.js', 'dist/index.js'); require('fs').copyFileSync('package.json', 'dist/package.json');\"",
+    "build": "vite build",
     "preview": "vite preview",
     "start": "node index.js"
   },
