@@ -1,11 +1,8 @@
 import os
 from flask import Flask, render_template
 
-# Configure explicit template and static folders so Flask can reliably locate assets.
-base_dir = os.path.dirname(os.path.abspath(__file__))
-template_dir = os.path.join(base_dir, "templates")
-static_dir = os.path.join(base_dir, "static")
-app = Flask(__name__, static_folder=static_dir, template_folder=template_dir)
+# Configure explicit template and static folders.
+app = Flask(__name__, template_folder='templates', static_folder='static')
 
 @app.after_request
 def add_cors_headers(response):
@@ -20,7 +17,7 @@ def home():
 
 @app.route("/book-ticket")
 def book_ticket():
-    return render_template("book_ticket.html")
+    return render_template("book-ticket.html")
 
 @app.route("/favicon.ico")
 def favicon():
@@ -28,7 +25,7 @@ def favicon():
 
 @app.route("/<path:path>")
 def catch_all(path):
-    # Make /book-ticket work even when the user refreshes or navigates directly.
+    # Make /book-ticket work when the user refreshes or navigates directly.
     if path.startswith("api") or path.startswith("static"):
         return "Not Found", 404
     return render_template("index.html")
