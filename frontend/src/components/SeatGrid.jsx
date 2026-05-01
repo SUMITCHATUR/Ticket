@@ -1,10 +1,21 @@
 import React from 'react'
 
 const SeatGrid = ({ seats, selectedSeat, onSeatSelect, loading }) => {
+  console.log('SeatGrid - seats:', seats)
+  console.log('SeatGrid - loading:', loading)
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="spinner w-8 h-8"></div>
+      </div>
+    )
+  }
+  
+  if (!seats || seats.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-500">No seats available</p>
       </div>
     )
   }

@@ -1,0 +1,48 @@
+FRONTEND & BACKEND RUN COMMANDS
+===============================
+
+BACKEND SETUP (First Terminal):
+1. Open PowerShell as Administrator
+2. Navigate to backend folder:
+   cd "C:\Users\SUMIT CHATUR\Ticket\backend"
+
+3. Create virtual environment:
+   python -m venv venv
+
+4. Activate virtual environment:
+   .\venv\Scripts\Activate
+
+5. Install dependencies:
+   pip install -r requirements.txt
+
+6. Run backend server:
+   python main.py
+
+FRONTEND SETUP (Second Terminal):
+1. Open new PowerShell
+2. Navigate to frontend folder:
+   cd "C:\Users\SUMIT CHATUR\Ticket\frontend"
+
+3. Install dependencies:
+   npm install
+
+4. Run frontend server:
+   npm run dev
+
+ACCESS URLs:
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+
+LOGIN CREDENTIALS:
+- Admin: admin / admin123
+- Conductor: conductor / conductor123
+
+TROUBLESHOOTING:
+- If port 8000 is busy: netstat -ano | findstr :8000
+- If port 3000 is busy: netstat -ano | findstr :3000
+- Kill process: taskkill /PID <PID> /F
+
+SIMPLE RUN (if already setup):
+- Backend: cd backend; .\venv\Scripts\Activate; python main.py
+- Frontend: cd frontend; npm run dev
