@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { CreditCard, Smartphone, Banknote, Check, Loader2 } from 'lucide-react'
 import QRCodeDisplay from './QRCodeDisplay'
-import { toast } from 'react-toastify'
+import toast from 'react-hot-toast'
 
 const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: externalUpiId, qrCode: externalQrCode, upiUrl: externalUpiUrl, isLoading: externalLoading, onGenerateQR, paymentStatus, onPaymentStatusChange }) => {
   const [internalQrCode, setInternalQrCode] = useState(null)
@@ -132,7 +132,7 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
         toast.success('🎉 Payment Successful! UPI payment received successfully.')
         // Auto-enable booking button after successful payment
         setTimeout(() => {
-          toast.info('You can now complete your booking!')
+          toast('You can now complete your booking!')
         }, 2000)
       } else {
         toast.error('Payment not received yet. Please try again after completing payment.')
