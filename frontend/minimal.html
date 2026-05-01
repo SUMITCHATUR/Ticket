@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bus Ticket System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .login { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+        .dashboard { display: none; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        input, select { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bus Ticket Booking System</h1>
+        
+        <div id="loginPage" class="login">
+            <h2>Login (Demo Mode)</h2>
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+            <button class="btn" onclick="login()">Login</button>
+            <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                Demo Credentials:<br>
+                Admin: admin / admin123<br>
+                Conductor: conductor / conductor123
+            </p>
+        </div>
+
+        <div id="dashboardPage" class="dashboard">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Dashboard</h2>
+                <div>
+                    <span id="userDisplay"></span>
+                    <button class="btn" onclick="logout()">Logout</button>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>Today's Tickets</h3>
+                    <p style="font-size: 24px; font-weight: bold; color: #007bff;">25</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Revenue</h3>
+                    <p style="font-size: 24px; font-weight: bold; color: #28a745;">₹12,500</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Active Routes</h3>
+                    <p style="font-size: 24px; font-weight: bold; color: #6f42c1;">5</p>
+                </div>
+            </div>
+
+            <div>
+                <h3>Menu</h3>
+                <button class="btn" onclick="showSection('dashboard')">Dashboard</button>
+                <button class="btn" onclick="showSection('bookTicket')">Book Ticket</button>
+                <button class="btn" onclick="showSection('viewTickets')">View Tickets</button>
+            </div>
+
+            <div id="dashboardSection">
+                <h3>Recent Tickets</h3>
+                <table>
+                    <tr>
+                        <th>Ticket ID</th>
+                        <th>Passenger</th>
+                        <th>Route</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>TKT-20260426-25</td>
+                        <td>Demo User</td>
+                        <td>Mumbai-Pune</td>
+                        <td>₹500</td>
+                        <td style="color: #28a745;">Confirmed</td>
+                    </tr>
+                    <tr>
+                        <td>TKT-20260426-24</td>
+                        <td>John Doe</td>
+                        <td>Delhi-Mumbai</td>
+                        <td>₹800</td>
+                        <td style="color: #28a745;">Confirmed</td>
+                    </tr>
+                    <tr>
+                        <td>TKT-20260426-23</td>
+                        <td>Jane Smith</td>
+                        <td>Bangalore-Chennai</td>
+                        <td>₹600</td>
+                        <td style="color: #28a745;">Confirmed</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div id="bookTicketSection" style="display: none;">
+                <h3>Book Ticket</h3>
+                <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <label>From:</label>
+                            <select id="fromCity">
+                                <option value="">Select City</option>
+                                <option value="Mumbai">Mumbai</option>
+                                <option value="Pune">Pune</option>
+                                <option value="Nashik">Nashik</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>To:</label>
+                            <select id="toCity">
+                                <option value="">Select City</option>
+                                <option value="Mumbai">Mumbai</option>
+                                <option value="Pune">Pune</option>
+                                <option value="Nashik">Nashik</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="searchRoutes()" style="margin-top: 20px;">Search Routes</button>
+                </div>
+
+                <div id="routesList" style="display: none; margin-top: 20px;">
+                    <h3>Available Routes</h3>
+                    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4>Mumbai to Pune</h4>
+                                    <p style="color: #666;">AC Sleeper | 08:00 - 10:30</p>
+                                </div>
+                                <div style="text-align: right;">
+                                    <p style="font-size: 18px; font-weight: bold; color: #28a745;">₹500</p>
+                                    <button class="btn">Select</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="border: 1px solid #ddd; padding: 15px; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4>Pune to Mumbai</h4>
+                                    <p style="color: #666;">AC Sleeper | 14:00 - 16:30</p>
+                                </div>
+                                <div style="text-align: right;">
+                                    <p style="font-size: 18px; font-weight: bold; color: #28a745;">₹500</p>
+                                    <button class="btn">Select</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="viewTicketsSection" style="display: none;">
+                <h3>View Tickets</h3>
+                <table>
+                    <tr>
+                        <th>Ticket ID</th>
+                        <th>Passenger</th>
+                        <th>Route</th>
+                        <th>Seat</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>TKT-20260426-25</td>
+                        <td>Demo User</td>
+                        <td>Mumbai-Pune</td>
+                        <td>A1</td>
+                        <td>₹500</td>
+                        <td style="color: #28a745;">Confirmed</td>
+                    </tr>
+                    <tr>
+                        <td>TKT-20260426-24</td>
+                        <td>John Doe</td>
+                        <td>Delhi-Mumbai</td>
+                        <td>B2</td>
+                        <td>₹800</td>
+                        <td style="color: #28a745;">Confirmed</td>
+                    </tr>
+                    <tr>
+                        <td>TKT-20260426-23</td>
+                        <td>Jane Smith</td>
+                        <td>Bangalore-Chennai</td>
+                        <td>C3</td>
+                        <td>₹600</td>
+                        <td style="color: #28a745;">Confirmed</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if ((username === 'admin' && password === 'admin123') || 
+                (username === 'conductor' && password === 'conductor123')) {
+                document.getElementById('userDisplay').textContent = username;
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('dashboardPage').style.display = 'block';
+            } else {
+                alert('Invalid credentials. Use admin/admin123 or conductor/conductor123');
+            }
+        }
+
+        function logout() {
+            document.getElementById('loginPage').style.display = 'block';
+            document.getElementById('dashboardPage').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function showSection(section) {
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('bookTicketSection').style.display = 'none';
+            document.getElementById('viewTicketsSection').style.display = 'none';
+            
+            document.getElementById(section + 'Section').style.display = 'block';
+        }
+
+        function searchRoutes() {
+            const from = document.getElementById('fromCity').value;
+            const to = document.getElementById('toCity').value;
+            
+            if (from && to) {
+                document.getElementById('routesList').style.display = 'block';
+            } else {
+                alert('Please select both from and to cities');
+            }
+        }
+    </script>
+</body>
+</html>
