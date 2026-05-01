@@ -11,15 +11,11 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
   ],
   "env": {
-    "VITE_API_URL": "https://ticket-backend-production.up.railway.app"
+    "VITE_API_URL": ""
   }
 }

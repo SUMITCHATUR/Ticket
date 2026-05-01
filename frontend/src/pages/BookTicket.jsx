@@ -156,25 +156,8 @@ const BookTicket = () => {
         }))
       )
     } catch (error) {
-      // Use demo seats if API fails
-      const demoSeats = []
-      for (let i = 1; i <= 20; i++) {
-        demoSeats.push({
-          id: i,
-          number: `A${i}`,
-          type: 'sleeper',
-          status: i <= 15 ? 'available' : 'booked'
-        })
-      }
-      for (let i = 1; i <= 20; i++) {
-        demoSeats.push({
-          id: i + 20,
-          number: `B${i}`,
-          type: 'sleeper',
-          status: i <= 12 ? 'available' : 'booked'
-        })
-      }
-      setAvailableSeats(demoSeats)
+      toast.error('Failed to fetch seats')
+      console.error('Seat fetch error:', error)
     } finally {
       setLoading(false)
     }
@@ -353,7 +336,6 @@ const BookTicket = () => {
 
       const paymentData = {
         payment_amount: selectedRoute.base_fare || 500,
-        amount: selectedRoute.base_fare || 500,
         payment_method: paymentMethod === 'upi' ? 'UPI' : paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1),
         upi_id: paymentMethod === 'upi' ? upiId.trim() : null
       }
@@ -381,9 +363,7 @@ const BookTicket = () => {
         toast.error('Failed to book ticket')
       }
     } catch (error) {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || error?.message || 'Booking failed. Please try again.'
-      toast.error(message)
-      console.error('Booking error:', error)
+      toast.error('Booking failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -545,9 +525,7 @@ const BookTicket = () => {
                   `}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-gray-900">
-                      {route.route_name || `${route.source_city} → ${route.destination_city}`}
-                    </h3>
+                    <h3 className="font-medium text-gray-900">{route.route_name}</h3>
                     <IndianRupee className="w-4 h-4 text-gray-400" />
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
@@ -555,13 +533,7 @@ const BookTicket = () => {
                     {route.source_city} to {route.destination_city}
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    {route.departure_time ? (
-                      <span className="text-sm text-gray-500">{route.departure_time} – {route.arrival_time || '?'}</span>
-                    ) : route.distance_km ? (
-                      <span className="text-sm text-gray-500">{route.distance_km} km</span>
-                    ) : (
-                      <span className="text-sm text-gray-500">{route.bus_type || 'Bus'}</span>
-                    )}
+                    <span className="text-sm text-gray-500">{route.distance_km} km</span>
                     <span className="font-medium text-primary-600">Rs. {route.base_fare}</span>
                   </div>
                 </div>
