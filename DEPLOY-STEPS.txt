@@ -1,0 +1,33 @@
+DEPLOYMENT STEPS - FOLLOW EXACTLY!
+
+METHOD 1: NETLIFY (EASIEST)
+1. Open browser: netlify.com
+2. Click "Sign up" ya "Log in"
+3. Drag the index.html file from C:\Users\SUMIT CHATUR\Ticket\index.html
+4. Drop it on the Netlify page
+5. Your site will be LIVE instantly!
+6. Copy the URL they give you
+
+METHOD 2: LOCAL TESTING (100% WORKS)
+1. Open File Explorer
+2. Go to C:\Users\SUMIT CHATUR\Ticket\
+3. Double-click index.html
+4. It will open in browser
+5. Test login: admin / admin123
+
+METHOD 3: PYTHON SERVER
+1. Open Command Prompt
+2. Type: cd C:\Users\SUMIT CHATUR\Ticket
+3. Type: python -m http.server 8000
+4. Open browser: http://localhost:8000
+
+METHOD 4: GITHUB PAGES (IF SAVE WORKS)
+1. Go to: github.com/SUMITCHATUR/Ticket
+2. Click Settings tab
+3. Scroll down to Pages
+4. Source: Deploy from a branch
+5. Branch: main > / (root) > Save
+6. Wait 2-3 minutes
+7. Visit: sumitchatur.github.io/Ticket
+
+RECOMMENDED: TRY NETLIFY FIRST - IT'S GUARANTEED TO WORK!
