@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { CreditCard, Smartphone, Banknote, Check, Loader2 } from 'lucide-react'
 import QRCodeDisplay from './QRCodeDisplay'
+import { toast } from 'react-toastify'
 
 const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: externalUpiId, qrCode: externalQrCode, upiUrl: externalUpiUrl, isLoading: externalLoading, onGenerateQR, paymentStatus, onPaymentStatusChange }) => {
   const [internalQrCode, setInternalQrCode] = useState(null)
