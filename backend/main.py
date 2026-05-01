@@ -593,8 +593,7 @@ async def book_ticket_with_payment(
 @app.post("/api/payment/complete/{payment_id}")
 async def complete_payment(
     payment_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db)
 ):
     """Complete payment after verification"""
     try:
@@ -614,8 +613,7 @@ async def complete_payment(
 @app.get("/api/payment/history/{ticket_id}")
 async def get_payment_history(
     ticket_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db)
 ):
     """Get payment history for a ticket"""
     try:

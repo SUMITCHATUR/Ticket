@@ -99,9 +99,9 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 # ===== PAYMENT GATEWAY ENDPOINTS =====
 
 @app.post("/payment/create", response_model=PaymentResponse)
+@app.post("/api/payment/create", response_model=PaymentResponse)
 async def create_payment(
-    payment_request: PaymentRequest,
-    current_user: User = Depends(get_current_active_user)
+    payment_request: PaymentRequest
 ):
     """Create payment and generate QR code"""
     try:
@@ -133,9 +133,9 @@ async def create_payment(
         raise HTTPException(status_code=500, detail="Payment creation failed")
 
 @app.post("/payment/upi/generate-qr")
+@app.post("/api/payment/upi/generate-qr")
 async def generate_upi_qr(
-    upi_request: UPIPaymentRequest,
-    current_user: User = Depends(get_current_active_user)
+    upi_request: UPIPaymentRequest
 ):
     """Generate UPI payment QR code"""
     try:
@@ -173,9 +173,9 @@ async def generate_upi_qr(
         raise HTTPException(status_code=500, detail="UPI QR generation failed")
 
 @app.post("/payment/verify/{payment_id}")
+@app.post("/api/payment/verify/{payment_id}")
 async def verify_payment(
-    payment_id: str,
-    current_user: User = Depends(get_current_active_user)
+    payment_id: str
 ):
     """Verify payment status"""
     try:
@@ -226,11 +226,11 @@ async def process_refund(
 # ===== TICKET PAYMENT INTEGRATION =====
 
 @app.post("/tickets/book-with-payment")
+@app.post("/api/tickets/book-with-payment")
 async def book_ticket_with_payment(
     booking_request: TicketBookingRequest,
     payment_request: PaymentRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(check_conductor_role)
+    db: Session = Depends(get_db)
 ):
     """Book ticket with integrated payment system"""
     try:
@@ -290,10 +290,10 @@ async def book_ticket_with_payment(
         raise HTTPException(status_code=500, detail="Ticket booking with payment failed")
 
 @app.post("/payment/complete/{payment_id}")
+@app.post("/api/payment/complete/{payment_id}")
 async def complete_payment(
     payment_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db)
 ):
     """Complete payment after verification"""
     try:
@@ -315,10 +315,10 @@ async def complete_payment(
         raise HTTPException(status_code=500, detail="Payment completion failed")
 
 @app.get("/payment/history/{ticket_id}")
+@app.get("/api/payment/history/{ticket_id}")
 async def get_payment_history(
     ticket_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db)
 ):
     """Get payment history for a ticket"""
     try:

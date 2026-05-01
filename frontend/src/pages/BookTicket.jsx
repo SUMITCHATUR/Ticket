@@ -353,6 +353,7 @@ const BookTicket = () => {
 
       const paymentData = {
         payment_amount: selectedRoute.base_fare || 500,
+        amount: selectedRoute.base_fare || 500,
         payment_method: paymentMethod === 'upi' ? 'UPI' : paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1),
         upi_id: paymentMethod === 'upi' ? upiId.trim() : null
       }

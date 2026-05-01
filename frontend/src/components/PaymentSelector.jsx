@@ -64,6 +64,7 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
         },
         body: JSON.stringify({
           amount: amount,
+          payment_amount: amount,
           payment_method: paymentMethod,
           upi_id: paymentMethod === 'upi' ? targetUpiId : null,
           description: `Bus Ticket Payment - Rs. ${amount}`
