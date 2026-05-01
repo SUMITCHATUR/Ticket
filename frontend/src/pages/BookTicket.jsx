@@ -380,6 +380,13 @@ const BookTicket = () => {
         return
       }
 
+      // Check if UPI payment is completed
+      if (paymentMethod === 'upi' && upiPaymentStatus !== 'success') {
+        toast.error('Please complete UPI payment before booking. Click "I\'ve Paid - Verify Payment" after making payment.')
+        setLoading(false)
+        return
+      }
+
       const bookingData = {
         passenger: {
           passenger_name: passengerData.name,

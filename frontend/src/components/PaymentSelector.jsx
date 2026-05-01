@@ -233,6 +233,11 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
                   <p className="text-sm text-green-700 mt-1">
                     You can now complete your booking.
                   </p>
+                  <div className="mt-3 p-3 bg-green-100 rounded-lg">
+                    <p className="text-sm text-green-800 font-medium">
+                      ✅ Ready for Booking Completion
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
