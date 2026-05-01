@@ -79,19 +79,8 @@ const BookTicket = () => {
   }, [paymentMethod])
 
   const fetchRoutes = async (query = null) => {
-    try {
-      const params = query
-        ? {
-            from: query.from || undefined,
-            to: query.to || undefined,
-          }
-        : {}
-      
-      const response = await routeAPI.getAll(params)
-      setRoutes(response.data)
-    } catch (error) {
-      // Use demo routes if API fails - generate all Maharashtra city combinations
-      const cities = ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Aurangabad', 'Thane', 'Solapur', 'Kolhapur', 'Sangli', 'Satara', 'Ahmednagar', 'Jalgaon', 'Buldhana', 'Dhule', 'Gadchiroli', 'Gondia', 'Hingoli', 'Jalna', 'Kolhapur', 'Latur', 'Mumbai', 'Mumbai Suburban', 'Nagpur', 'Nanded', 'Nandurbar', 'Nashik', 'Osmanabad', 'Palghar', 'Parbhani', 'Pune', 'Raigad', 'Ratnagiri', 'Sangli', 'Satara', 'Sindhudurg', 'Solapur', 'Thane', 'Wardha', 'Washim', 'Yavatmal']
+    // Always generate demo routes for Maharashtra cities
+    const cities = ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Aurangabad', 'Thane', 'Solapur', 'Kolhapur', 'Sangli', 'Satara', 'Ahmednagar', 'Jalgaon', 'Buldhana', 'Dhule', 'Gadchiroli', 'Gondia', 'Hingoli', 'Jalna', 'Kolhapur', 'Latur', 'Mumbai', 'Mumbai Suburban', 'Nagpur', 'Nanded', 'Nandurbar', 'Nashik', 'Osmanabad', 'Palghar', 'Parbhani', 'Pune', 'Raigad', 'Ratnagiri', 'Sangli', 'Satara', 'Sindhudurg', 'Solapur', 'Thane', 'Wardha', 'Washim', 'Yavatmal']
       
       const demoRoutes = []
       let routeId = 1
@@ -119,7 +108,6 @@ const BookTicket = () => {
       console.log('Generated demoRoutes:', demoRoutes)
       setRoutes(demoRoutes)
     }
-  }
 
   const fetchAvailableSeats = async (routeId) => {
     try {
