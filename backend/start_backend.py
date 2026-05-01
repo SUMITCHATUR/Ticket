@@ -3,6 +3,7 @@
 Simple Backend Startup Script
 """
 
+import os
 import socket
 import uvicorn
 from payment_app import app
@@ -19,9 +20,10 @@ def find_free_port(start_port=8000):
     return 8000
 
 if __name__ == "__main__":
-    port = find_free_port()
+    # Use Railway PORT environment variable, fallback to local port
+    port = int(os.environ.get('PORT', find_free_port()))
     print(f"Starting Bus Ticket System Backend on port {port}")
     print(f"API will be available at: http://localhost:{port}")
     print(f"Frontend should connect to: http://localhost:{port}")
     
-    uvicorn.run("payment_app:app", host="0.0.0.0", port=port, log_level="info", reload=True)
+    uvicorn.run("payment_app:app", host="0.0.0.0", port=port, log_level="info")
