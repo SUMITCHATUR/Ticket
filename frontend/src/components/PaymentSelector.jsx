@@ -207,21 +207,21 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
               )}
             </div>
           ) : (
-            <QRCodeDisplay
-              qrData={qrCode}
-              upiUrl={upiUrl}
-              type="upi-payment"
-              title="UPI Payment QR Code"
-              subtitle={paymentId ? `Payment ID: ${paymentId}` : "Scan to Pay"}
-              showDownload={true}
-              showRefresh={!externalQrCode}
-              onRefresh={handleRefreshQR}
-              status={!expiryTime || new Date(expiryTime) > new Date() ? 'active' : 'expired'}
-              expiryTime={expiryTime}
-            />
-            
-            {/* Payment Status Display */}
-            <div className="mt-4">
+            <>
+              <QRCodeDisplay
+                qrData={qrCode}
+                upiUrl={upiUrl}
+                type="upi-payment"
+                title="UPI Payment QR Code"
+                subtitle={paymentId ? `Payment ID: ${paymentId}` : "Scan to Pay"}
+                showDownload={true}
+                showRefresh={!externalQrCode}
+                onRefresh={handleRefreshQR}
+                status={!expiryTime || new Date(expiryTime) > new Date() ? 'active' : 'expired'}
+                expiryTime={expiryTime}
+              />
+              
+              <div className="mt-4">
               {paymentStatus === 'success' ? (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center gap-2">
@@ -264,7 +264,8 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
                   </button>
                 </div>
               )}
-            </div>
+              </div>
+            </>
           )}
         </div>
       )}
