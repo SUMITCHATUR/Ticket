@@ -90,56 +90,33 @@ const BookTicket = () => {
       const response = await routeAPI.getAll(params)
       setRoutes(response.data)
     } catch (error) {
-      // Use demo routes if API fails
-      const demoRoutes = [
-        {
-          route_id: 1,
-          source_city: 'Mumbai',
-          destination_city: 'Pune',
-          departure_time: '08:00',
-          arrival_time: '10:30',
-          base_fare: 500,
-          bus_type: 'AC Sleeper',
-          available_seats: 40
-        },
-        {
-          route_id: 2,
-          source_city: 'Pune',
-          destination_city: 'Mumbai',
-          departure_time: '14:00',
-          arrival_time: '16:30',
-          base_fare: 500,
-          bus_type: 'AC Sleeper',
-          available_seats: 38
-        },
-        {
-          route_id: 3,
-          source_city: 'Mumbai',
-          destination_city: 'Nashik',
-          departure_time: '06:00',
-          arrival_time: '09:00',
-          base_fare: 600,
-          bus_type: 'AC Seater',
-          available_seats: 45
-        }
-      ]
+      // Use demo routes if API fails - generate all Maharashtra city combinations
+      const cities = ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Aurangabad', 'Thane', 'Solapur', 'Kolhapur', 'Sangli', 'Satara', 'Ahmednagar', 'Jalgaon', 'Buldhana', 'Dhule', 'Gadchiroli', 'Gondia', 'Hingoli', 'Jalna', 'Kolhapur', 'Latur', 'Mumbai', 'Mumbai Suburban', 'Nagpur', 'Nanded', 'Nandurbar', 'Nashik', 'Osmanabad', 'Palghar', 'Parbhani', 'Pune', 'Raigad', 'Ratnagiri', 'Sangli', 'Satara', 'Sindhudurg', 'Solapur', 'Thane', 'Wardha', 'Washim', 'Yavatmal']
       
-      // Filter routes based on query if provided
-      let filteredRoutes = demoRoutes
-      if (query) {
-        if (query.from) {
-          filteredRoutes = filteredRoutes.filter(r => 
-            r.source_city.toLowerCase().includes(query.from.toLowerCase())
-          )
-        }
-        if (query.to) {
-          filteredRoutes = filteredRoutes.filter(r => 
-            r.destination_city.toLowerCase().includes(query.to.toLowerCase())
-          )
+      const demoRoutes = []
+      let routeId = 1
+      
+      // Generate routes between all city combinations
+      for (let i = 0; i < cities.length; i++) {
+        for (let j = 0; j < cities.length; j++) {
+          if (i !== j) { // Don't create routes from city to itself
+            const sourceCity = cities[i]
+            const destCity = cities[j]
+            
+            demoRoutes.push({
+              route_id: routeId++,
+              source_city: sourceCity,
+              destination_city: destCity,
+              departure_time: `${6 + Math.floor(Math.random() * 12)}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
+              arrival_time: `${(6 + Math.floor(Math.random() * 12) + 2)}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
+              base_fare: 300 + Math.floor(Math.random() * 500), // 300-800 rupees
+              bus_type: Math.random() > 0.5 ? 'AC Sleeper' : 'Non-AC Sleeper',
+              available_seats: 30 + Math.floor(Math.random() * 20) // 30-50 seats
+            })
+          }
         }
       }
-      
-      setRoutes(filteredRoutes)
+      setRoutes(demoRoutes)
     }
   }
 
