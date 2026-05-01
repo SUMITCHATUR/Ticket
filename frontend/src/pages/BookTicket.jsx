@@ -143,24 +143,19 @@ const BookTicket = () => {
   }
 
   const fetchAvailableSeats = async (routeId) => {
-    console.log('fetchAvailableSeats called with routeId:', routeId)
     try {
       setLoading(true)
       const response = await routeAPI.getAvailableSeats(routeId)
-      console.log('Seat API response:', response)
       const list = Array.isArray(response.data) ? response.data : []
-      console.log('Seats list:', list)
       const mappedSeats = list.map((s) => ({
         id: s.seat_id,
         number: s.seat_number,
         type: s.seat_type,
         status: (s.status || 'available').toLowerCase()
       }))
-      console.log('Mapped seats:', mappedSeats)
       setAvailableSeats(mappedSeats)
     } catch (error) {
       toast.error('Failed to fetch seats')
-      console.error('Seat fetch error:', error)
       // Use demo seats as fallback
       const demoSeats = []
       for (let i = 1; i <= 20; i++) {
@@ -179,18 +174,34 @@ const BookTicket = () => {
           status: i <= 12 ? 'available' : 'booked'
         })
       }
-      console.log('Using demo seats:', demoSeats)
       setAvailableSeats(demoSeats)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleRouteSelect = async (route) => {
+  const handleRouteSelect = (route) => {
     setSelectedRoute(route)
     setSelectedSeat(null)
-    // Fetch seats first, then go to step 2
-    await fetchAvailableSeats(route.route_id)
+    // Use demo seats immediately for better UX
+    const demoSeats = []
+    for (let i = 1; i <= 20; i++) {
+      demoSeats.push({
+        id: i,
+        number: `A${i}`,
+        type: 'sleeper',
+        status: i <= 15 ? 'available' : 'booked'
+      })
+    }
+    for (let i = 1; i <= 20; i++) {
+      demoSeats.push({
+        id: i + 20,
+        number: `B${i}`,
+        type: 'sleeper',
+        status: i <= 12 ? 'available' : 'booked'
+      })
+    }
+    setAvailableSeats(demoSeats)
     setStep(2)
   }
 

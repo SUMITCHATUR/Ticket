@@ -1,9 +1,6 @@
 import React from 'react'
 
 const SeatGrid = ({ seats, selectedSeat, onSeatSelect, loading }) => {
-  console.log('SeatGrid - seats:', seats)
-  console.log('SeatGrid - loading:', loading)
-  
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
