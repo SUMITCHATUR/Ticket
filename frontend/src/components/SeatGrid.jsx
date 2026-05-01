@@ -56,63 +56,58 @@ const SeatGrid = ({ seats, selectedSeat, onSeatSelect, loading }) => {
       </div>
 
       {/* Bus Layout */}
-      <div className="bg-gray-100 p-4 rounded-lg">
+      <div className="rounded-[24px] border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 shadow-inner shadow-slate-100">
         {/* Driver Seat */}
         <div className="mb-4 text-center">
-          <div className="inline-block w-12 h-8 bg-gray-600 rounded flex items-center justify-center text-white text-xs">
+          <div className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-700 px-4 text-sm font-semibold text-white shadow-sm">
             Driver
           </div>
         </div>
 
         {/* Seats Grid */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {Object.keys(rows).map(row => (
-            <div key={row} className="flex items-center justify-center gap-2">
-              {/* Row Label */}
-              <div className="w-8 text-center font-medium text-gray-600">
-                {row}
+            <div key={row} className="rounded-2xl bg-white/80 px-3 py-3 shadow-sm ring-1 ring-slate-100">
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <span>Row {row}</span>
+                <span>{rows[row].length} seats</span>
               </div>
-              
-              {/* Seats in Row */}
-              <div className="flex gap-1">
-                {rows[row].map((seat) => (
-                  <button
-                    key={seat.id}
-                    onClick={() => onSeatSelect(seat)}
-                    disabled={seat.status === 'booked'}
-                    className={getSeatClass(seat)}
-                    title={`Seat ${seat.number} - ${seat.type}`}
-                  >
-                    {getSeatIcon(seat)}
-                  </button>
-                ))}
-              </div>
-
-              {/* Row Label */}
-              <div className="w-8 text-center font-medium text-gray-600">
-                {row}
+              <div className="overflow-x-auto pb-2">
+                <div className="flex min-w-max items-center gap-2">
+                  {rows[row].map((seat) => (
+                    <button
+                      key={seat.id}
+                      onClick={() => onSeatSelect(seat)}
+                      disabled={seat.status === 'booked'}
+                      className={getSeatClass(seat)}
+                      title={`Seat ${seat.number} - ${seat.type}`}
+                    >
+                      {getSeatIcon(seat)}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           ))}
         </div>
 
         {/* Aisle */}
-        <div className="mt-4 h-2 bg-gray-300 rounded"></div>
+        <div className="mt-5 h-2 rounded-full bg-slate-200"></div>
       </div>
 
       {/* Selected Seat Info */}
       {selectedSeat && (
-        <div className="p-4 bg-primary-50 border border-primary-200 rounded-lg">
+        <div className="rounded-[22px] border border-cyan-200 bg-gradient-to-r from-cyan-50 to-blue-50 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-primary-900">Selected Seat</p>
-              <p className="text-sm text-primary-700">
+              <p className="font-medium text-cyan-950">Selected Seat</p>
+              <p className="text-sm text-cyan-800">
                 Seat {selectedSeat.number} ({selectedSeat.type})
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-primary-600">Type</p>
-              <p className="font-medium text-primary-900">{selectedSeat.type}</p>
+              <p className="text-sm text-cyan-700">Type</p>
+              <p className="font-medium text-cyan-950">{selectedSeat.type}</p>
             </div>
           </div>
         </div>

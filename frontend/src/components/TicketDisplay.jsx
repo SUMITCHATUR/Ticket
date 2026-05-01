@@ -56,11 +56,11 @@ const TicketDisplay = ({ ticket }) => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="mx-auto max-w-2xl">
       <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-xl p-1">
-        <div className="bg-white rounded-xl p-8">
+        <div className="rounded-xl bg-white p-4 sm:p-6 lg:p-8">
           {/* Success Message */}
-          <div className="text-center mb-6">
+          <div className="mb-6 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
@@ -69,14 +69,14 @@ const TicketDisplay = ({ ticket }) => {
           </div>
 
           {/* Ticket Design */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6">
+          <div className="mb-6 rounded-2xl border-2 border-dashed border-gray-300 p-4 sm:p-5 lg:p-6">
             {/* Ticket Header */}
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+            <div className="mb-4 flex flex-col gap-3 border-b border-gray-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center">
                 <Ticket className="w-6 h-6 text-primary-600 mr-2" />
                 <span className="font-bold text-gray-900">Bus Ticket</span>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <p className="text-sm text-gray-500">Ticket Number</p>
                 <p className="font-mono font-bold text-primary-600">{ticket.ticket_number}</p>
               </div>
@@ -122,18 +122,18 @@ const TicketDisplay = ({ ticket }) => {
               <p className="text-sm text-gray-500 mb-3">
                 {ticket.paymentMethod === 'upi' ? 'Scan this UPI QR to pay the exact amount' : 'Scan for Boarding'}
               </p>
-              <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+              <div className="rounded-2xl border-2 border-gray-200 bg-white p-4">
                 {ticket.customQrUrl ? (
                   <img
                     src={ticket.customQrUrl}
                     alt="Custom QR Code"
-                    className="w-48 h-48 object-contain"
+                    className="h-40 w-40 object-contain sm:h-48 sm:w-48"
                   />
                 ) : ticket.paymentQr ? (
                   <img
                     src={ticket.paymentQr}
                     alt="Payment QR Code"
-                    className="w-48 h-48 object-contain"
+                    className="h-40 w-40 object-contain sm:h-48 sm:w-48"
                   />
                 ) : (
                   <QRCode
@@ -186,7 +186,7 @@ const TicketDisplay = ({ ticket }) => {
 
             {/* Ticket Footer */}
             <div className="mt-6 pt-4 border-t border-gray-200">
-              <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex flex-col gap-2 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p>Generated on: {new Date().toLocaleDateString()}</p>
                   <p>Time: {new Date().toLocaleTimeString()}</p>

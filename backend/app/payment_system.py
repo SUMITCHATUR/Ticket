@@ -54,6 +54,27 @@ class OnlinePaymentRequest(BaseModel):
     cardholder_name: str
     amount: float
 
+
+def normalize_payment_method(value) -> str:
+    """Normalize enum-like or free-form payment methods to DB/API values."""
+    if value is None:
+        return ""
+    if hasattr(value, "value"):
+        value = value.value
+
+    raw = str(value).strip()
+    if "." in raw:
+        raw = raw.split(".")[-1]
+
+    lowered = raw.lower()
+    if lowered == "cash":
+        return "Cash"
+    if lowered == "upi":
+        return "UPI"
+    if lowered == "online":
+        return "Online"
+    return raw
+
 class QRCodeGenerator:
     
     @staticmethod
@@ -113,6 +134,8 @@ class PaymentGateway:
     def create_payment(request: PaymentRequest) -> PaymentResponse:
         """Create payment and generate QR code"""
         try:
+            normalized_method = normalize_payment_method(request.payment_method)
+
             # Generate unique payment ID
             payment_id = f"PAY_{datetime.now().strftime('%Y%m%d')}_{str(uuid.uuid4())[:8].upper()}"
             transaction_id = f"TXN_{datetime.now().strftime('%Y%m%d%H%M%S')}_{str(uuid.uuid4())[:6].upper()}"
@@ -133,7 +156,7 @@ class PaymentGateway:
             payment_url = None
             upi_url = None
             
-            if request.payment_method.lower() == "upi":
+            if normalized_method.lower() == "upi":
                 if request.upi_id:
                     # Generate UPI QR
                     upi_request = UPIPaymentRequest(
@@ -151,17 +174,17 @@ class PaymentGateway:
                 else:
                     raise Exception("UPI ID is required for UPI payment")
                     
-            elif request.payment_method.lower() == "online":
+            elif normalized_method.lower() == "online":
                 # Generate payment URL for online payment
                 payment_url = f"https://payment.bus-ticket.com/pay/{payment_id}"
                 qr_code_data = QRCodeGenerator.generate_payment_qr(payment_data)
                 
-            elif request.payment_method.lower() == "cash":
+            elif normalized_method.lower() == "cash":
                 # For cash, generate receipt QR
                 qr_code_data = QRCodeGenerator.generate_payment_qr(payment_data)
                 
             else:
-                raise Exception(f"Unsupported payment method: {request.payment_method}")
+                raise Exception(f"Unsupported payment method: {normalized_method}")
             
             return PaymentResponse(
                 success=True,
@@ -238,6 +261,7 @@ class PaymentProcessor:
             from app import models
             
             # Check if payment already exists
+            normalized_method = normalize_payment_method(ticket_data.get("payment_method"))
             existing_payment = self.db.query(models.Payment).filter(
                 models.Payment.ticket_id == ticket_data.get("ticket_id")
             ).first()
@@ -245,7 +269,7 @@ class PaymentProcessor:
             if existing_payment:
                 # Update existing payment
                 existing_payment.payment_amount = ticket_data.get("amount")
-                existing_payment.payment_method = ticket_data.get("payment_method")
+                existing_payment.payment_method = normalized_method
                 existing_payment.payment_status = "Success"
                 existing_payment.transaction_id = ticket_data.get("transaction_id")
                 existing_payment.upi_id = ticket_data.get("upi_id")
@@ -258,7 +282,7 @@ class PaymentProcessor:
                 payment = models.Payment(
                     ticket_id=ticket_data.get("ticket_id"),
                     payment_amount=ticket_data.get("amount"),
-                    payment_method=ticket_data.get("payment_method"),
+                    payment_method=normalized_method,
                     payment_status="Success",
                     transaction_id=ticket_data.get("transaction_id"),
                     upi_id=ticket_data.get("upi_id"),
@@ -272,7 +296,7 @@ class PaymentProcessor:
             # Generate QR code for payment
             payment_request = PaymentRequest(
                 amount=ticket_data.get("amount"),
-                payment_method=ticket_data.get("payment_method"),
+                payment_method=normalized_method,
                 upi_id=ticket_data.get("upi_id"),
                 description=f"Bus Ticket Payment - Ticket {ticket_data.get('ticket_id')}"
             )
@@ -294,7 +318,7 @@ class PaymentProcessor:
                     existing_qr.qr_data = json.dumps({
                         "payment_id": payment_response.payment_id,
                         "amount": ticket_data.get("amount"),
-                        "method": ticket_data.get("payment_method"),
+                        "method": normalized_method,
                         "created_at": datetime.now().isoformat()
                     })
                     existing_qr.qr_validity_status = "Valid"
@@ -306,7 +330,7 @@ class PaymentProcessor:
                         qr_data=json.dumps({
                             "payment_id": payment_response.payment_id,
                             "amount": ticket_data.get("amount"),
-                            "method": ticket_data.get("payment_method"),
+                            "method": normalized_method,
                             "created_at": datetime.now().isoformat()
                         }),
                         qr_validity_status="Valid"

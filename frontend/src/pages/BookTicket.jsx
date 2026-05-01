@@ -1,816 +1,590 @@
-import React, { useState, useEffect } from 'react'
-import { 
-  Search, 
-  MapPin, 
-  Users, 
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  AlertCircle,
   Calendar,
-  IndianRupee,
-  CreditCard,
-  Smartphone,
-  Banknote,
-  QrCode,
   CheckCircle,
-  AlertCircle
+  IndianRupee,
+  MapPin,
+  Search,
+  Users
 } from 'lucide-react'
 import SeatGrid from '../components/SeatGrid'
 import PaymentSelector from '../components/PaymentSelector'
 import TicketDisplay from '../components/TicketDisplay'
-import { routeAPI, ticketAPI, paymentAPI } from '../services/api'
+import { paymentAPI, routeAPI, ticketAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import { MAHARASHTRA_CITIES } from '../data/maharashtraCities'
 
-const BookTicket = () => {
-  const [step, setStep] = useState(1) // 1: Route, 2: Seats, 3: Passenger, 4: Payment, 5: Confirmation
-  const [loading, setLoading] = useState(false)
-  const [routeQuery, setRouteQuery] = useState({
-    from: '',
-    to: ''
-  })
-  const [showFromSuggestions, setShowFromSuggestions] = useState(false)
-  const [showToSuggestions, setShowToSuggestions] = useState(false)
-  
-  // Form data
-  const [selectedRoute, setSelectedRoute] = useState(null)
-  const [selectedSeat, setSelectedSeat] = useState(null)
-  const [passengerData, setPassengerData] = useState({
-    name: '',
-    age: '',
-    gender: '',
-    idType: 'Aadhar',
-    idNumber: ''
-  })
-  const [paymentMethod, setPaymentMethod] = useState('cash')
-  const [upiId, setUpiId] = useState('')
-  const [generatedTicket, setGeneratedTicket] = useState(null)
-  const [customQrFile, setCustomQrFile] = useState(null)
-  const [customQrUrl, setCustomQrUrl] = useState('')
-  const [upiPreviewQr, setUpiPreviewQr] = useState('')
-  const [upiPreviewUrl, setUpiPreviewUrl] = useState('')
-  const [upiPreviewLoading, setUpiPreviewLoading] = useState(false)
-  const [upiPaymentStatus, setUpiPaymentStatus] = useState('pending') // pending, success, failed
+const INITIAL_PASSENGER = {
+  passenger_name: '',
+  contact_number: '',
+  age: '',
+  gender: 'Male',
+  id_type: 'Aadhar',
+  id_number: ''
+}
 
-  // API data
+const BookTicket = () => {
   const [routes, setRoutes] = useState([])
-  const [availableSeats, setAvailableSeats] = useState([])
+  const [loadingRoutes, setLoadingRoutes] = useState(true)
+  const [loadingSeats, setLoadingSeats] = useState(false)
+  const [selectedRoute, setSelectedRoute] = useState(null)
+  const [seats, setSeats] = useState([])
+  const [selectedSeat, setSelectedSeat] = useState(null)
+  const [selectedMethod, setSelectedMethod] = useState('cash')
+  const [passenger, setPassenger] = useState(INITIAL_PASSENGER)
+  const [sourceFilter, setSourceFilter] = useState('')
+  const [destinationFilter, setDestinationFilter] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [upiId, setUpiId] = useState('')
+  const [qrCode, setQrCode] = useState('')
+  const [upiUrl, setUpiUrl] = useState('')
+  const [paymentStatus, setPaymentStatus] = useState('pending')
+  const [creatingQR, setCreatingQR] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [bookedTicket, setBookedTicket] = useState(null)
 
   useEffect(() => {
     fetchRoutes()
   }, [])
 
-  useEffect(() => {
-    // When user types From/To, fetch matching routes (and backend can auto-generate)
-    const timer = setTimeout(() => {
-      fetchRoutes(routeQuery)
-    }, 250)
-    return () => clearTimeout(timer)
-  }, [routeQuery.from, routeQuery.to])
+  const filteredRoutes = useMemo(() => {
+    return routes.filter((route) => {
+      const matchesSearch = searchTerm
+        ? `${route.route_name} ${route.source_city} ${route.destination_city}`
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
+        : true
+      const matchesSource = sourceFilter ? route.source_city === sourceFilter : true
+      const matchesDestination = destinationFilter ? route.destination_city === destinationFilter : true
+      return matchesSearch && matchesSource && matchesDestination
+    })
+  }, [destinationFilter, routes, searchTerm, sourceFilter])
 
-  useEffect(() => {
-    if (selectedRoute) {
-      fetchAvailableSeats(selectedRoute.route_id)
-    }
-  }, [selectedRoute])
+  const cityOptions = useMemo(() => {
+    return Array.from(
+      new Set([
+        ...MAHARASHTRA_CITIES,
+        ...routes.flatMap((route) => [route.source_city, route.destination_city])
+      ].filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b))
+  }, [routes])
 
-  useEffect(() => {
-    if (paymentMethod !== 'upi') {
-      setUpiPreviewQr('')
-      setUpiPreviewUrl('')
-    }
-  }, [paymentMethod])
+  const fareAmount = selectedRoute ? Number(selectedRoute.base_fare || 0) : 0
 
-  const fetchRoutes = async (query = null) => {
-    // Always generate demo routes for Maharashtra cities
-    const cities = ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Aurangabad', 'Thane', 'Solapur', 'Kolhapur', 'Sangli', 'Satara', 'Ahmednagar', 'Jalgaon', 'Buldhana', 'Dhule', 'Gadchiroli', 'Gondia', 'Hingoli', 'Jalna', 'Kolhapur', 'Latur', 'Mumbai', 'Mumbai Suburban', 'Nagpur', 'Nanded', 'Nandurbar', 'Nashik', 'Osmanabad', 'Palghar', 'Parbhani', 'Pune', 'Raigad', 'Ratnagiri', 'Sangli', 'Satara', 'Sindhudurg', 'Solapur', 'Thane', 'Wardha', 'Washim', 'Yavatmal']
-      
-      const demoRoutes = []
-      let routeId = 1
-      
-      // Generate routes between all city combinations
-      for (let i = 0; i < cities.length; i++) {
-        for (let j = 0; j < cities.length; j++) {
-          if (i !== j) { // Don't create routes from city to itself
-            const sourceCity = cities[i]
-            const destCity = cities[j]
-            
-            demoRoutes.push({
-              route_id: routeId++,
-              source_city: sourceCity,
-              destination_city: destCity,
-              departure_time: `${6 + Math.floor(Math.random() * 12)}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
-              arrival_time: `${(6 + Math.floor(Math.random() * 12) + 2)}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
-              base_fare: 300 + Math.floor(Math.random() * 500), // 300-800 rupees
-              bus_type: Math.random() > 0.5 ? 'AC Sleeper' : 'Non-AC Sleeper',
-              available_seats: 30 + Math.floor(Math.random() * 20) // 30-50 seats
-            })
-          }
-        }
-      }
-      console.log('Generated demoRoutes:', demoRoutes)
-      setRoutes(demoRoutes)
-    }
-
-  const fetchAvailableSeats = async (routeId) => {
+  const fetchRoutes = async () => {
     try {
-      setLoading(true)
-      const response = await routeAPI.getAvailableSeats(routeId)
-      const list = Array.isArray(response.data) ? response.data : []
-      const mappedSeats = list.map((s) => ({
-        id: s.seat_id,
-        number: s.seat_number,
-        type: s.seat_type,
-        status: (s.status || 'available').toLowerCase()
-      }))
-      setAvailableSeats(mappedSeats)
+      setLoadingRoutes(true)
+      const response = await routeAPI.getAll()
+      setRoutes(Array.isArray(response.data) ? response.data : [])
     } catch (error) {
-      toast.error('Failed to fetch seats')
-      // Use demo seats as fallback
-      const demoSeats = []
-      for (let i = 1; i <= 20; i++) {
-        demoSeats.push({
-          id: i,
-          number: `A${i}`,
-          type: 'sleeper',
-          status: i <= 15 ? 'available' : 'booked'
-        })
-      }
-      for (let i = 1; i <= 20; i++) {
-        demoSeats.push({
-          id: i + 20,
-          number: `B${i}`,
-          type: 'sleeper',
-          status: i <= 12 ? 'available' : 'booked'
-        })
-      }
-      setAvailableSeats(demoSeats)
+      console.error('Error fetching routes:', error)
+      toast.error('Routes load nahi ho paayi. Backend check karein.')
     } finally {
-      setLoading(false)
+      setLoadingRoutes(false)
+    }
+  }
+
+  const fetchSeats = async (route) => {
+    try {
+      setLoadingSeats(true)
+      setSelectedSeat(null)
+      setSeats([])
+      const response = await routeAPI.getAvailableSeats(route.route_id)
+      const normalizedSeats = (Array.isArray(response.data) ? response.data : []).map((seat) => ({
+        id: seat.seat_id,
+        number: seat.seat_number,
+        type: seat.seat_type,
+        bus_number: seat.bus_number,
+        status: (seat.status || 'available').toLowerCase()
+      }))
+      setSeats(normalizedSeats)
+    } catch (error) {
+      console.error('Error fetching seats:', error)
+      toast.error('Seats load nahi ho paayi.')
+    } finally {
+      setLoadingSeats(false)
     }
   }
 
   const handleRouteSelect = (route) => {
     setSelectedRoute(route)
-    setSelectedSeat(null)
-    // Use demo seats immediately for better UX
-    const demoSeats = []
-    for (let i = 1; i <= 20; i++) {
-      demoSeats.push({
-        id: i,
-        number: `A${i}`,
-        type: 'sleeper',
-        status: i <= 15 ? 'available' : 'booked'
-      })
-    }
-    for (let i = 1; i <= 20; i++) {
-      demoSeats.push({
-        id: i + 20,
-        number: `B${i}`,
-        type: 'sleeper',
-        status: i <= 12 ? 'available' : 'booked'
-      })
-    }
-    setAvailableSeats(demoSeats)
-    setStep(2)
-  }
-
-  const generateUpiPreview = async () => {
-    if (!upiId.trim()) {
-      toast.error('Please enter UPI ID to generate QR')
-      return
-    }
-    if (!selectedRoute) {
-      toast.error('Please select a route first')
-      return
-    }
-    setUpiPreviewLoading(true)
-    try {
-      const response = await paymentAPI.generateUPIQR({
-        upi_id: upiId.trim(),
-        amount: selectedRoute.base_fare || 500,
-        merchant_name: 'Bus Ticket System',
-        transaction_note: `Bus Ticket ${selectedRoute.source_city}-${selectedRoute.destination_city}`
-      })
-      if (response.data.success) {
-        setUpiPreviewQr(response.data.qr_code_data)
-        setUpiPreviewUrl(response.data.upi_url)
-        toast.success('UPI payment QR generated. Scan to pay the exact amount.')
-        // Start checking payment status
-        startPaymentStatusCheck()
-      }
-    } catch (error) {
-      toast.error('Unable to generate UPI QR. Check UPI ID and try again.')
-    } finally {
-      setUpiPreviewLoading(false)
-    }
-  }
-
-  const startPaymentStatusCheck = () => {
-    // Check payment status every 3 seconds
-    const checkInterval = setInterval(async () => {
-      try {
-        // Simulate payment verification - in real app, this would call payment API
-        const paymentSuccessful = Math.random() > 0.7 // 30% chance of success for demo
-        
-        if (paymentSuccessful) {
-          clearInterval(checkInterval)
-          setUpiPaymentStatus('success')
-          toast.success('🎉 Payment Successful! UPI payment received successfully.')
-          // Auto-enable booking button after successful payment
-          setTimeout(() => {
-            toast.info('You can now complete your booking!')
-          }, 2000)
-        }
-      } catch (error) {
-        console.log('Payment status check failed')
-      }
-    }, 3000)
-
-    // Stop checking after 2 minutes
-    setTimeout(() => {
-      clearInterval(checkInterval)
-    }, 120000)
-  }
-
-  const normalizeText = (s) =>
-    String(s || '')
-      .toLowerCase()
-      .trim()
-      .replace(/[\s\-_]+/g, '')
-
-  const normalizedIncludes = (value, q) => {
-    const v = normalizeText(value)
-    const query = normalizeText(q)
-    if (!query) return true
-    return v.includes(query)
-  }
-
-  const allCities = Array.from(
-    new Set(
-      [
-        ...MAHARASHTRA_CITIES,
-        ...routes.flatMap((r) => [r.source_city, r.destination_city]),
-      ]
-        .filter(Boolean)
-        .map((c) => String(c).trim())
-    )
-  ).sort((a, b) => a.localeCompare(b))
-
-  const citySuggestions = (q) => {
-    const query = normalizeText(q)
-    if (!query) return allCities.slice(0, 12)
-
-    const scored = allCities
-      .map((city) => {
-        const norm = normalizeText(city)
-        const starts = norm.startsWith(query)
-        const includes = norm.includes(query)
-        return { city, score: starts ? 2 : includes ? 1 : 0 }
-      })
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score || a.city.localeCompare(b.city))
-      .slice(0, 12)
-      .map((x) => x.city)
-
-    return scored
-  }
-
-  const filteredRoutes = routes.filter((route) => {
-    const fromOk = normalizedIncludes(route.source_city, routeQuery.from)
-    const toOk = normalizedIncludes(route.destination_city, routeQuery.to)
-    return fromOk && toOk
-  })
-
-  const handleSeatSelect = (seat) => {
-    if (String(seat.status).toLowerCase() === 'available') {
-      setSelectedSeat(seat)
-    }
+    setSelectedMethod('cash')
+    setQrCode('')
+    setUpiUrl('')
+    setPaymentStatus('pending')
+    setBookedTicket(null)
+    fetchSeats(route)
   }
 
   const handlePassengerChange = (field, value) => {
-    setPassengerData(prev => ({
-      ...prev,
+    setPassenger((current) => ({
+      ...current,
       [field]: value
     }))
   }
 
-  const validatePassengerData = () => {
-    if (!passengerData.name.trim()) {
-      toast.error('Please enter passenger name')
-      return false
-    }
-    if (!passengerData.age || passengerData.age < 1 || passengerData.age > 120) {
-      toast.error('Please enter valid age')
-      return false
-    }
-    if (!passengerData.gender) {
-      toast.error('Please select gender')
-      return false
-    }
-    if (!passengerData.idNumber.trim()) {
-      toast.error('Please enter ID number')
-      return false
-    }
-    return true
+  const handlePaymentMethodChange = (method) => {
+    setSelectedMethod(method)
+    setQrCode('')
+    setUpiUrl('')
+    setPaymentStatus('pending')
   }
 
-  const handleNextStep = () => {
-    if (step === 1 && !selectedRoute) {
-      toast.error('Please select a route')
+  const handleGenerateQR = async () => {
+    if (!selectedRoute) {
+      toast.error('Pehle route select karein.')
       return
     }
-    if (step === 2 && !selectedSeat) {
-      toast.error('Please select a seat')
-      return
-    }
-    if (step === 3 && !validatePassengerData()) {
-      return
-    }
-    if (step < 5) {
-      setStep(step + 1)
-    }
-  }
 
-  const handlePrevStep = () => {
-    if (step > 1) {
-      setStep(step - 1)
+    if (selectedMethod === 'upi' && !upiId.trim()) {
+      toast.error('UPI ID enter karein.')
+      return
     }
-  }
 
-  const handleBooking = async () => {
     try {
-      setLoading(true)
-      
-      // Validate passenger data
-      if (!passengerData.name || !passengerData.age || !passengerData.gender || !passengerData.idNumber) {
-        toast.error('Please fill all passenger details')
-        setLoading(false)
-        return
-      }
+      setCreatingQR(true)
+      setPaymentStatus('pending')
 
-      // Check if UPI payment is completed
-      if (paymentMethod === 'upi' && upiPaymentStatus !== 'success') {
-        toast.error('Please complete UPI payment before booking. Click "I\'ve Paid - Verify Payment" after making payment.')
-        setLoading(false)
-        return
+      if (selectedMethod === 'upi') {
+        const response = await paymentAPI.generateUPIQR({
+          upi_id: upiId.trim(),
+          amount: fareAmount,
+          merchant_name: 'Bus Ticket System',
+          transaction_note: `${selectedRoute.route_name} booking`
+        })
+        setQrCode(response.data.qr_code_data || '')
+        setUpiUrl(response.data.upi_url || '')
+      } else if (selectedMethod === 'online') {
+        const response = await paymentAPI.create({
+          payment_amount: fareAmount,
+          payment_method: 'Online'
+        })
+        setQrCode(response.data.qr_code_data || '')
+        setUpiUrl(response.data.payment_url || '')
       }
+    } catch (error) {
+      console.error('Error generating QR:', error)
+      setQrCode('')
+      setUpiUrl('')
+      toast.error('Payment QR generate nahi ho paaya.')
+    } finally {
+      setCreatingQR(false)
+    }
+  }
 
-      const bookingData = {
+  const validateBooking = () => {
+    if (!selectedRoute) return 'Route select karein.'
+    if (!selectedSeat) return 'Seat select karein.'
+    if (!passenger.passenger_name.trim()) return 'Passenger name enter karein.'
+    if (!/^\d{10}$/.test(passenger.contact_number)) return 'Valid 10 digit mobile number enter karein.'
+    if (!passenger.id_number.trim()) return 'ID number enter karein.'
+    if (selectedMethod === 'upi' && paymentStatus !== 'success') return 'UPI payment verify karein.'
+    return ''
+  }
+
+  const handleBookTicket = async () => {
+    const errorMessage = validateBooking()
+    if (errorMessage) {
+      toast.error(errorMessage)
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      const bookingPayload = {
         passenger: {
-          passenger_name: passengerData.name,
-          contact_number: '9876543210',
-          age: parseInt(passengerData.age),
-          gender: passengerData.gender,
-          id_type: passengerData.idType,
-          id_number: passengerData.idNumber
+          passenger_name: passenger.passenger_name.trim(),
+          contact_number: passenger.contact_number.trim(),
+          age: passenger.age ? Number(passenger.age) : null,
+          gender: passenger.gender,
+          id_type: passenger.id_type,
+          id_number: passenger.id_number.trim()
         },
         bus_route_id: selectedRoute.route_id,
         seat_id: selectedSeat.id,
         conductor_id: 1,
-        ticket_price: selectedRoute.base_fare || 500,
-        payment_method: paymentMethod === 'upi' ? 'UPI' : paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)
+        payment_method: selectedMethod,
+        ticket_price: fareAmount
       }
 
-      if (paymentMethod === 'upi' && !upiId.trim()) {
-        toast.error('Please enter UPI ID for UPI payment')
-        setLoading(false)
-        return
-      }
-      if (paymentMethod === 'upi' && !upiPreviewQr) {
-        toast.error('Please generate the UPI payment QR before completing booking')
-        setLoading(false)
-        return
+      const paymentPayload = {
+        payment_amount: fareAmount,
+        payment_method: selectedMethod,
+        upi_id: selectedMethod === 'upi' ? upiId.trim() : null
       }
 
-      const paymentData = {
-        payment_amount: selectedRoute.base_fare || 500,
-        payment_method: paymentMethod === 'upi' ? 'UPI' : paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1),
-        upi_id: paymentMethod === 'upi' ? upiId.trim() : null
+      const response = await ticketAPI.book(bookingPayload, paymentPayload)
+      const data = response.data
+      const ticketData = {
+        ticket_id: data.ticket?.ticket_id,
+        ticket_number: data.ticket?.ticket_number,
+        passenger: data.ticket?.passenger_name || passenger.passenger_name,
+        route: `${selectedRoute.source_city} - ${selectedRoute.destination_city}`,
+        bus: selectedSeat.bus_number,
+        seat: data.ticket?.seat_number || selectedSeat.number,
+        amount: fareAmount,
+        paymentMethod: selectedMethod,
+        paymentStatus: selectedMethod === 'upi' ? 'Success' : 'Pending',
+        paymentTransaction: data.payment?.transaction_id,
+        paymentQr: data.payment?.qr_code_data || qrCode
       }
 
-      // Try real API first
-      try {
-        const response = await ticketAPI.book(bookingData, paymentData)
-        
-        if (response.data.success) {
-          setGeneratedTicket({
-            ...response.data.ticket,
-            passenger: passengerData.name,
-            seat: selectedSeat.number,
-            route: `${selectedRoute.source_city} to ${selectedRoute.destination_city}`,
-            bus: response.data.ticket?.bus || '-',
-            amount: selectedRoute.base_fare || 500,
-            paymentMethod: paymentMethod,
-            paymentQr: response.data.payment?.qr_code_data || '',
-            upiUrl: response.data.payment?.upi_url || '',
-            paymentTransaction: response.data.payment?.transaction_id || response.data.payment?.payment_id,
-            paymentStatus: response.data.payment?.payment_status || 'Pending',
-            customQrUrl: customQrUrl
-          })
-          setStep(5)
-          toast.success('Ticket booked successfully!')
-          return
-        }
-      } catch (apiError) {
-        console.log('API booking failed, using demo mode')
-      }
-
-      // Demo booking fallback
-      const ticketNumber = `TKT-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random() * 1000)}`
-      const transactionId = `TXN-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random() * 1000)}`
-      
-      setGeneratedTicket({
-        ticket_number: ticketNumber,
-        passenger: passengerData.name,
-        seat: selectedSeat.number,
-        route: `${selectedRoute.source_city} to ${selectedRoute.destination_city}`,
-        bus: 'Bus-' + (selectedRoute.route_id || '001'),
-        amount: selectedRoute.base_fare || 500,
-        paymentMethod: paymentMethod,
-        paymentQr: upiPreviewQr || '',
-        upiUrl: upiPreviewUrl || '',
-        paymentTransaction: transactionId,
-        paymentStatus: 'Success',
-        booking_date: new Date().toLocaleDateString(),
-        booking_time: new Date().toLocaleTimeString(),
-        customQrUrl: customQrUrl
-      })
-      setStep(5)
-      toast.success('Demo ticket booked successfully!')
-      
+      setBookedTicket(ticketData)
+      toast.success('Ticket successfully book ho gaya.')
+      fetchSeats(selectedRoute)
     } catch (error) {
-      toast.error('Booking failed. Please try again.')
+      console.error('Error booking ticket:', error)
+      toast.error('Ticket booking failed.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
-  }
-
-  const resetBooking = () => {
-    if (customQrUrl) {
-      URL.revokeObjectURL(customQrUrl)
-    }
-    setStep(1)
-    setSelectedRoute(null)
-    setSelectedSeat(null)
-    setPassengerData({
-      name: '',
-      age: '',
-      gender: '',
-      idType: 'Aadhar',
-      idNumber: ''
-    })
-    setPaymentMethod('cash')
-    setCustomQrFile(null)
-    setCustomQrUrl('')
-    setUpiPreviewQr('')
-    setUpiPreviewUrl('')
-    setGeneratedTicket(null)
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Book New Ticket</h1>
-        <p className="text-gray-600">Complete your ticket booking in few simple steps</p>
-      </div>
+    <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.14),_transparent_24%),linear-gradient(180deg,_#f8fbff_0%,_#eef6ff_42%,_#f8fafc_100%)]" />
+      <section className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-sky-950 via-cyan-900 to-emerald-800 px-4 py-5 text-white shadow-xl shadow-cyan-950/20 sm:px-5 sm:py-6 lg:rounded-[28px] lg:px-6 lg:py-7">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute -bottom-12 left-10 h-44 w-44 rounded-full bg-emerald-300/10 blur-3xl" />
+        <div className="relative grid gap-5 lg:grid-cols-[1.4fr_0.9fr] lg:items-end">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">
+              Maharashtra Route Booking
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+                Start Route aur End Route select karke fares instantly dekho
+              </h1>
+              <p className="max-w-2xl text-sm text-cyan-50/85 sm:text-[15px] lg:text-base">
+                Maharashtra ke multiple city pairs ke routes, ticket price, departure timing aur seat availability ek hi screen par.
+              </p>
+            </div>
+          </div>
 
-      {/* Progress Steps */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          {[
-            { step: 1, name: 'Select Route', icon: MapPin },
-            { step: 2, name: 'Choose Seat', icon: Users },
-            { step: 3, name: 'Passenger Info', icon: Calendar },
-            { step: 4, name: 'Payment', icon: CreditCard },
-            { step: 5, name: 'Confirmation', icon: CheckCircle }
-          ].map((item, index) => (
-            <div key={item.step} className="flex items-center">
-              <div className={`
-                w-10 h-10 rounded-full flex items-center justify-center
-                ${step >= item.step ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'}
-              `}>
-                <item.icon className="w-5 h-5" />
-              </div>
-              <div className="ml-2 hidden sm:block">
-                <p className={`text-sm font-medium ${step >= item.step ? 'text-primary-600' : 'text-gray-600'}`}>
-                  {item.name}
-                </p>
-              </div>
-              {index < 4 && (
-                <div className={`w-full h-0.5 mx-4 ${step > item.step ? 'bg-primary-600' : 'bg-gray-200'}`} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/75">Live Routes</p>
+              <p className="mt-2 text-xl font-bold sm:text-2xl">{routes.length}</p>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/75">Filtered</p>
+              <p className="mt-2 text-xl font-bold sm:text-2xl">{filteredRoutes.length}</p>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/75">Selected Fare</p>
+              <p className="mt-2 text-xl font-bold sm:text-2xl">Rs. {fareAmount || 0}</p>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/75">Seat</p>
+              <p className="mt-2 text-xl font-bold sm:text-2xl">{selectedSeat?.number || '--'}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {bookedTicket && <TicketDisplay ticket={bookedTicket} />}
+
+      <div className="card overflow-hidden border-0 shadow-lg shadow-slate-200/70">
+        <div className="border-b border-slate-100 bg-gradient-to-r from-white via-slate-50 to-cyan-50 px-4 py-4 sm:px-5 lg:px-6 lg:py-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Route Finder</h2>
+              <p className="text-sm text-slate-600">Source aur destination choose kijiye, matching ticket prices niche aa jayenge.</p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs font-medium">
+              {sourceFilter && (
+                <span className="rounded-full bg-slate-900 px-3 py-1 text-white">{sourceFilter}</span>
+              )}
+              {destinationFilter && (
+                <span className="rounded-full bg-emerald-600 px-3 py-1 text-white">{destinationFilter}</span>
               )}
             </div>
-          ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 p-4 sm:gap-4 sm:p-5 md:grid-cols-3 lg:p-6">
+          <div className="relative md:col-span-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Route, source ya destination search karein"
+              className="input h-12 rounded-2xl border-slate-200 bg-slate-50 pl-10 shadow-inner shadow-slate-100"
+            />
+          </div>
+
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            className="input h-12 rounded-2xl border-slate-200 bg-white"
+          >
+            <option value="">Start Route</option>
+            {cityOptions.map((city) => (
+              <option key={`src-${city}`} value={city}>{city}</option>
+            ))}
+          </select>
+
+          <select
+            value={destinationFilter}
+            onChange={(e) => setDestinationFilter(e.target.value)}
+            className="input h-12 rounded-2xl border-slate-200 bg-white"
+          >
+            <option value="">End Route</option>
+            {cityOptions.map((city) => (
+              <option key={`dst-${city}`} value={city}>{city}</option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => {
+              setSearchTerm('')
+              setSourceFilter('')
+              setDestinationFilter('')
+            }}
+            className="h-12 rounded-2xl bg-slate-100 px-4 font-medium text-slate-700 transition hover:bg-slate-200"
+          >
+            Clear Filters
+          </button>
         </div>
       </div>
 
-      {/* Step Content */}
-      <div className="card p-6">
-        {/* Step 1: Route Selection */}
-        {step === 1 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Select Route</h2>
-
-            {/* Search Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 lg:gap-6 2xl:grid-cols-[minmax(420px,0.92fr)_minmax(560px,1.08fr)]">
+        <div className="card overflow-hidden border border-white/70 bg-white/90 shadow-lg shadow-slate-200/70 backdrop-blur">
+          <div className="border-b border-slate-100 bg-white px-4 py-4 sm:px-5 lg:px-6 lg:py-5">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Stop (From City)
-                </label>
-                <div className="relative">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    value={routeQuery.from}
-                    onChange={(e) => setRouteQuery((p) => ({ ...p, from: e.target.value }))}
-                    onFocus={() => setShowFromSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowFromSuggestions(false), 120)}
-                    className="input pl-9"
-                    placeholder="e.g. Pune"
-                  />
-                </div>
-
-                {showFromSuggestions && (
-                  <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                    {citySuggestions(routeQuery.from).map((city) => (
-                      <button
-                        key={`from-${city}`}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => setRouteQuery((p) => ({ ...p, from: city }))}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                      >
-                        {city}
-                      </button>
-                    ))}
-                    {citySuggestions(routeQuery.from).length === 0 && (
-                      <div className="px-3 py-2 text-sm text-gray-500">No city found</div>
-                    )}
-                  </div>
-                )}
+                <h2 className="text-lg font-semibold text-slate-900">Available Routes</h2>
+                <p className="text-sm text-slate-600">Matching routes aur unke prices yahan se compare kijiye.</p>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  End Stop (To City)
-                </label>
-                <div className="relative">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    value={routeQuery.to}
-                    onChange={(e) => setRouteQuery((p) => ({ ...p, to: e.target.value }))}
-                    onFocus={() => setShowToSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowToSuggestions(false), 120)}
-                    className="input pl-9"
-                    placeholder="e.g. Chhatrapati Sambhajinagar"
-                  />
-                </div>
-
-                {showToSuggestions && (
-                  <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                    {citySuggestions(routeQuery.to).map((city) => (
-                      <button
-                        key={`to-${city}`}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => setRouteQuery((p) => ({ ...p, to: city }))}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                      >
-                        {city}
-                      </button>
-                    ))}
-                    {citySuggestions(routeQuery.to).length === 0 && (
-                      <div className="px-3 py-2 text-sm text-gray-500">No city found</div>
-                    )}
-                  </div>
-                )}
+              <div className="rounded-full bg-slate-900 px-3 py-1 text-sm font-semibold text-white">
+                {filteredRoutes.length}
               </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredRoutes.map((route) => (
-                <div
-                  key={route.route_id}
-                  onClick={() => handleRouteSelect(route)}
-                  className={`
-                    p-4 border rounded-lg cursor-pointer transition-all
-                    ${selectedRoute?.route_id === route.route_id 
-                      ? 'border-primary-500 bg-primary-50' 
-                      : 'border-gray-200 hover:border-gray-300'
-                    }
-                  `}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-gray-900">{route.route_name}</h3>
-                    <IndianRupee className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    {route.source_city} to {route.destination_city}
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm text-gray-500">{route.distance_km} km</span>
-                    <span className="font-medium text-primary-600">Rs. {route.base_fare}</span>
-                  </div>
-                </div>
-              ))}
+          <div className="p-4 sm:p-5 lg:p-6">
+          {sourceFilter && destinationFilter && (
+            <div className="mb-4 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-medium text-cyan-900">
+              {sourceFilter} se {destinationFilter} ke sab matching routes aur unka price niche dikh raha hai.
             </div>
+          )}
 
-            {filteredRoutes.length === 0 && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600">
-                No routes found for the selected cities. Try changing Start/End stop names.
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 2: Seat Selection */}
-        {step === 2 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Select Seat</h2>
-            <SeatGrid
-              seats={availableSeats}
-              selectedSeat={selectedSeat}
-              onSeatSelect={handleSeatSelect}
-              loading={loading}
-            />
-          </div>
-        )}
-
-        {/* Step 3: Passenger Information */}
-        {step === 3 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Passenger Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  value={passengerData.name}
-                  onChange={(e) => handlePassengerChange('name', e.target.value)}
-                  className="input"
-                  placeholder="Enter passenger name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Age *
-                </label>
-                <input
-                  type="number"
-                  value={passengerData.age}
-                  onChange={(e) => handlePassengerChange('age', e.target.value)}
-                  className="input"
-                  placeholder="Enter age"
-                  min="1"
-                  max="120"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Gender *
-                </label>
-                <select
-                  value={passengerData.gender}
-                  onChange={(e) => handlePassengerChange('gender', e.target.value)}
-                  className="input"
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ID Type *
-                </label>
-                <select
-                  value={passengerData.idType}
-                  onChange={(e) => handlePassengerChange('idType', e.target.value)}
-                  className="input"
-                >
-                  <option value="Aadhar">Aadhar</option>
-                  <option value="PAN">PAN</option>
-                  <option value="Passport">Passport</option>
-                  <option value="DL">Driving License</option>
-                  <option value="Voter ID">Voter ID</option>
-                </select>
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ID Number *
-                </label>
-                <input
-                  type="text"
-                  value={passengerData.idNumber}
-                  onChange={(e) => handlePassengerChange('idNumber', e.target.value)}
-                  className="input"
-                  placeholder="Enter ID number"
-                />
-              </div>
+          {loadingRoutes ? (
+            <div className="flex items-center justify-center h-48">
+              <div className="spinner w-8 h-8"></div>
             </div>
+          ) : (
+            <div className="space-y-3 sm:space-y-4 lg:max-h-[38rem] lg:overflow-y-auto lg:pr-1">
+              {filteredRoutes.map((route) => {
+                const active = selectedRoute?.route_id === route.route_id
+                return (
+                  <button
+                    key={route.route_id}
+                    type="button"
+                    onClick={() => handleRouteSelect(route)}
+                    className={`group w-full text-left rounded-[24px] border p-4 sm:p-5 transition-all ${
+                      active
+                        ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-emerald-50 shadow-md shadow-cyan-100'
+                        : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md hover:shadow-slate-200/70'
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-slate-900">{route.route_name}</p>
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                            {route.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <MapPin className="w-4 h-4" />
+                          <span>{route.source_city}</span>
+                          <span className="text-slate-300">•</span>
+                          <span>{route.destination_city}</span>
+                        </div>
+                        <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                          <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                            <span className="block text-[11px] uppercase tracking-[0.18em] text-slate-400">Travel Date</span>
+                            <span className="font-medium text-slate-800">{route.travel_date}</span>
+                          </div>
+                          <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                            <span className="block text-[11px] uppercase tracking-[0.18em] text-slate-400">Timing</span>
+                            <span className="font-medium text-slate-800">{route.departure_time} - {route.arrival_time}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <Calendar className="w-4 h-4" />
+                          <span>{Number(route.distance_km || 0)} km • {route.estimated_time_hours} hrs</span>
+                        </div>
+                      </div>
+                      <div className="text-left sm:text-right">
+                        <p className="text-sm text-slate-500">Fare</p>
+                        <p className="text-2xl font-bold text-cyan-700">Rs. {Number(route.base_fare)}</p>
+                        <p className="mt-2 text-xs font-medium text-slate-400 group-hover:text-cyan-600">
+                          {active ? 'Selected' : 'Tap to view seats'}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
 
-            {/* Booking Summary */}
-            {(selectedRoute && selectedSeat) && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-medium text-gray-900 mb-2">Booking Summary</h3>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Route:</span>
-                    <span className="font-medium">{selectedRoute.source_city} to {selectedRoute.destination_city}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Seat:</span>
-                    <span className="font-medium">{selectedSeat.number}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Fare:</span>
-                    <span className="font-medium text-primary-600">Rs. {selectedRoute.base_fare || 500}</span>
-                  </div>
+              {filteredRoutes.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <AlertCircle className="w-10 h-10 text-gray-400 mb-3" />
+                  <p className="text-gray-600">Koi matching route nahi mila.</p>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 4: Payment */}
-        {step === 4 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Method</h2>
-            <PaymentSelector
-              selectedMethod={paymentMethod}
-              onMethodChange={setPaymentMethod}
-              amount={selectedRoute?.base_fare || 500}
-              upiId={upiId}
-              qrCode={upiPreviewQr}
-              upiUrl={upiPreviewUrl}
-              isLoading={upiPreviewLoading}
-              onGenerateQR={paymentMethod === 'upi' ? generateUpiPreview : null}
-              paymentStatus={upiPaymentStatus}
-              onPaymentStatusChange={setUpiPaymentStatus}
-            />
-
-            {paymentMethod === 'upi' && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Verify UPI ID
-                </label>
-                <input
-                  type="text"
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value)}
-                  className="input w-full"
-                  placeholder="Enter your UPI ID (e.g. example@upi)"
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 5: Confirmation */}
-        {step === 5 && generatedTicket && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Booking Confirmed!</h2>
-            <TicketDisplay ticket={generatedTicket} />
-          </div>
-        )}
-
-        {/* Navigation Buttons */}
-        {step < 5 && (
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={handlePrevStep}
-              disabled={step === 1}
-              className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              onClick={step === 4 ? handleBooking : handleNextStep}
-              disabled={loading}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <div className="flex items-center">
-                  <div className="spinner w-4 h-4 mr-2"></div>
-                  Processing...
-                </div>
-              ) : (
-                step === 4 ? 'Complete Booking' : 'Next'
               )}
-            </button>
+            </div>
+          )}
           </div>
-        )}
+        </div>
 
-        {/* Reset Button */}
-        {step === 5 && (
-          <div className="flex justify-center mt-6">
-            <button onClick={resetBooking} className="btn-primary">
-              Book Another Ticket
+        <div className="space-y-6">
+          <div className="card border border-white/70 bg-white/92 p-4 shadow-lg shadow-slate-200/70 backdrop-blur sm:p-5 lg:p-6">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Seat Selection</h2>
+              {selectedRoute && (
+                <span className="max-w-full rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
+                  {selectedRoute.source_city} to {selectedRoute.destination_city}
+                </span>
+              )}
+            </div>
+            {selectedRoute ? (
+              <SeatGrid
+                seats={seats}
+                selectedSeat={selectedSeat}
+                onSeatSelect={setSelectedSeat}
+                loading={loadingSeats}
+              />
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                Pahle route select karein.
+              </div>
+            )}
+          </div>
+
+          <div className="card space-y-4 border border-white/70 bg-white/92 p-4 shadow-lg shadow-slate-200/70 backdrop-blur sm:p-5 lg:p-6">
+            <h2 className="text-lg font-semibold text-gray-900">Passenger Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Passenger name"
+                value={passenger.passenger_name}
+                onChange={(e) => handlePassengerChange('passenger_name', e.target.value)}
+                className="input rounded-2xl border-slate-200 bg-slate-50"
+              />
+              <input
+                type="tel"
+                placeholder="10 digit mobile number"
+                value={passenger.contact_number}
+                onChange={(e) => handlePassengerChange('contact_number', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                className="input rounded-2xl border-slate-200 bg-slate-50"
+              />
+              <input
+                type="number"
+                placeholder="Age"
+                value={passenger.age}
+                onChange={(e) => handlePassengerChange('age', e.target.value)}
+                className="input rounded-2xl border-slate-200 bg-slate-50"
+              />
+              <select
+                value={passenger.gender}
+                onChange={(e) => handlePassengerChange('gender', e.target.value)}
+                className="input rounded-2xl border-slate-200 bg-slate-50"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+              <select
+                value={passenger.id_type}
+                onChange={(e) => handlePassengerChange('id_type', e.target.value)}
+                className="input rounded-2xl border-slate-200 bg-slate-50"
+              >
+                <option value="Aadhar">Aadhar</option>
+                <option value="PAN">PAN</option>
+                <option value="Passport">Passport</option>
+                <option value="DL">DL</option>
+                <option value="Voter ID">Voter ID</option>
+              </select>
+              <input
+                type="text"
+                placeholder="ID number"
+                value={passenger.id_number}
+                onChange={(e) => handlePassengerChange('id_number', e.target.value)}
+                className="input rounded-2xl border-slate-200 bg-slate-50"
+              />
+            </div>
+          </div>
+
+          <div className="card space-y-4 border border-white/70 bg-white/92 p-4 shadow-lg shadow-slate-200/70 backdrop-blur sm:p-5 lg:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Payment</h2>
+              <div className="flex items-center gap-2 rounded-full bg-cyan-50 px-3 py-1.5 text-cyan-700 font-semibold">
+                <IndianRupee className="w-4 h-4" />
+                <span>{fareAmount || 0}</span>
+              </div>
+            </div>
+
+            {selectedMethod === 'upi' && (
+              <input
+                type="text"
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                placeholder="Enter UPI ID"
+                className="input rounded-2xl border-slate-200 bg-slate-50"
+              />
+            )}
+
+            <PaymentSelector
+              selectedMethod={selectedMethod}
+              onMethodChange={handlePaymentMethodChange}
+              amount={fareAmount}
+              upiId={upiId}
+              qrCode={qrCode}
+              upiUrl={upiUrl}
+              isLoading={creatingQR}
+              onGenerateQR={handleGenerateQR}
+              paymentStatus={paymentStatus}
+              onPaymentStatusChange={setPaymentStatus}
+            />
+          </div>
+
+          <div className="card border border-white/70 bg-white/92 p-4 shadow-lg shadow-slate-200/70 backdrop-blur sm:p-5 lg:p-6">
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-sm text-gray-500">Route</p>
+                <p className="font-medium text-gray-900">{selectedRoute ? `${selectedRoute.source_city} - ${selectedRoute.destination_city}` : '-'}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-sm text-gray-500">Seat</p>
+                <p className="font-medium text-gray-900">{selectedSeat ? selectedSeat.number : '-'}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-sm text-gray-500">Passengers</p>
+                <p className="font-medium text-gray-900 flex items-center gap-2"><Users className="w-4 h-4" /> 1</p>
+              </div>
+            </div>
+
+            {selectedMethod === 'upi' && paymentStatus === 'success' && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 mb-4 text-green-800">
+                <CheckCircle className="w-4 h-4" />
+                <span>UPI payment verified. Ab booking complete kar sakte hain.</span>
+              </div>
+            )}
+
+            <button
+              onClick={handleBookTicket}
+              disabled={submitting}
+              className="btn-primary"
+            >
+              {submitting ? 'Booking...' : 'Complete Booking'}
             </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

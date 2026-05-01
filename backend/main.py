@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db, test_connection
 from app import models
-from app.payment_system import QRCodeGenerator, PaymentGateway, PaymentProcessor, PaymentResponse, UPIPaymentRequest
+from app.payment_system import QRCodeGenerator, PaymentGateway, PaymentProcessor, PaymentResponse, UPIPaymentRequest, normalize_payment_method
 from app.validators import TicketBookingRequest, PaymentRequest as ValidatorPaymentRequest
 from app.simple_auth import get_current_active_user, check_admin_role, check_conductor_role, login_for_access_token, User, Token
 from app.services import TicketBookingService, PaymentService
@@ -158,6 +158,136 @@ class QRResponse(BaseModel):
     expires_at: Optional[str] = None
     success: bool
 
+
+MAHARASHTRA_ROUTE_CITIES = [
+    "Ahmednagar",
+    "Akola",
+    "Amravati",
+    "Aurangabad",
+    "Beed",
+    "Bhandara",
+    "Buldhana",
+    "Chandrapur",
+    "Dhule",
+    "Gadchiroli",
+    "Gondia",
+    "Hingoli",
+    "Jalgaon",
+    "Jalna",
+    "Kolhapur",
+    "Latur",
+    "Mumbai",
+    "Nagpur",
+    "Nanded",
+    "Nandurbar",
+    "Nashik",
+    "Osmanabad",
+    "Palghar",
+    "Parbhani",
+    "Pune",
+    "Raigad",
+    "Ratnagiri",
+    "Sangli",
+    "Satara",
+    "Sindhudurg",
+    "Solapur",
+    "Thane",
+    "Wardha",
+    "Washim",
+    "Yavatmal",
+    "Chhatrapati Sambhajinagar",
+]
+
+
+def build_maharashtra_route_templates():
+    templates = []
+    for source_index, source_city in enumerate(MAHARASHTRA_ROUTE_CITIES):
+        for destination_index, destination_city in enumerate(MAHARASHTRA_ROUTE_CITIES):
+            if source_city == destination_city:
+                continue
+
+            city_gap = abs(destination_index - source_index) + 1
+            distance_km = 120 + (city_gap * 18) + ((source_index + destination_index) % 7) * 11
+            estimated_hours = round(max(3.5, distance_km / 62), 1)
+            base_fare = int(round(distance_km * 2.9 / 10) * 10)
+            departure_hour = (6 + (source_index * 3 + destination_index * 5) % 16) % 24
+            departure_minute = 30 if (source_index + destination_index) % 2 else 0
+            route_name = f"{source_city} - {destination_city} Express"
+
+            templates.append((
+                route_name,
+                source_city,
+                destination_city,
+                distance_km,
+                estimated_hours,
+                base_fare,
+                departure_hour,
+                departure_minute,
+            ))
+    return templates
+
+
+DEMO_ROUTE_TEMPLATES = build_maharashtra_route_templates()
+
+
+def ensure_demo_routes(db: Session):
+    route_count = db.query(models.Route).count()
+    bus_count = db.query(models.Bus).count()
+    if bus_count == 0 or route_count >= len(DEMO_ROUTE_TEMPLATES):
+        return
+
+    buses = db.query(models.Bus).order_by(models.Bus.bus_id).all()
+    if not buses:
+        return
+
+    created = False
+    for index, template in enumerate(DEMO_ROUTE_TEMPLATES):
+        route_name, source_city, destination_city, distance_km, hours, fare, dep_hour, dep_minute = template
+        existing_route = db.query(models.Route).filter(
+            models.Route.source_city == source_city,
+            models.Route.destination_city == destination_city
+        ).first()
+
+        if existing_route:
+            continue
+
+        travel_date = date.today() + timedelta(days=(index % 5) + 1)
+        departure_dt = datetime.combine(travel_date, time(dep_hour % 24, dep_minute % 60))
+        arrival_dt = departure_dt + timedelta(hours=hours)
+
+        route = models.Route(
+            route_name=route_name,
+            source_city=source_city,
+            destination_city=destination_city,
+            distance_km=distance_km,
+            estimated_time_hours=hours,
+            base_fare=fare,
+            travel_date=travel_date,
+            departure_time=departure_dt.time(),
+            arrival_time=arrival_dt.time(),
+            status="Scheduled"
+        )
+        db.add(route)
+        db.flush()
+
+        bus = buses[index % len(buses)]
+        existing_bus_route = db.query(models.BusRoute).filter(
+            models.BusRoute.bus_id == bus.bus_id,
+            models.BusRoute.route_id == route.route_id
+        ).first()
+        if not existing_bus_route:
+            db.add(models.BusRoute(
+                bus_id=bus.bus_id,
+                route_id=route.route_id,
+                available_capacity=bus.available_seats,
+                total_capacity=bus.total_seats
+            ))
+
+        created = True
+
+    if created:
+        db.commit()
+
 # Root endpoint
 @app.get("/")
 def read_root():
@@ -235,7 +365,12 @@ def create_bus(bus: BusBase, db: Session = Depends(get_db)):
 @app.get("/routes/", response_model=List[Route])
 @app.get("/api/routes/", response_model=List[Route])
 def get_routes(db: Session = Depends(get_db)):
-    routes = db.query(models.Route).all()
+    ensure_demo_routes(db)
+    routes = db.query(models.Route).order_by(
+        models.Route.source_city.asc(),
+        models.Route.destination_city.asc(),
+        models.Route.base_fare.asc()
+    ).all()
     return [Route.from_orm(route) for route in routes]
 
 @app.post("/routes/", response_model=Route)
@@ -304,6 +439,7 @@ def create_ticket(ticket: TicketBase, db: Session = Depends(get_db)):
 
 # Get available seats for a route
 @app.get("/routes/{route_id}/available-seats")
+@app.get("/api/routes/{route_id}/available-seats")
 def get_available_seats(route_id: int, db: Session = Depends(get_db)):
     query = text("""
     SELECT 
@@ -406,14 +542,15 @@ async def create_payment(
 ):
     """Create payment and generate QR code"""
     try:
-        logger.info(f"Creating payment: {payment_request.payment_method} - {payment_request.payment_amount}")
+        normalized_method = normalize_payment_method(payment_request.payment_method)
+        logger.info(f"Creating payment: {normalized_method} - {payment_request.payment_amount}")
         
         # Create payment data for system
         from app.payment_system import PaymentRequest as SystemPaymentRequest
         sys_req = SystemPaymentRequest(
             ticket_id=payment_request.ticket_id,
             amount=payment_request.payment_amount,
-            payment_method=payment_request.payment_method,
+            payment_method=normalized_method,
             upi_id=payment_request.upi_id,
             transaction_id=payment_request.transaction_id
         )
@@ -522,7 +659,8 @@ async def book_ticket_with_payment(
     payment_request = combined.payment_request
     """Book ticket with integrated payment system"""
     try:
-        logger.info(f"Booking ticket with payment: {payment_request.payment_method}")
+        normalized_method = normalize_payment_method(payment_request.payment_method)
+        logger.info(f"Booking ticket with payment: {normalized_method}")
 
         # Resolve bus_route_id: frontend sends route_id (routes table).
         # Look up the matching bus_route_id from bus_routes table.
@@ -551,7 +689,7 @@ async def book_ticket_with_payment(
             bus_route_id=resolved_bus_route_id,
             seat_id=booking_request.seat_id,
             conductor_id=booking_request.conductor_id,
-            payment_method=str(payment_request.payment_method),
+            payment_method=normalized_method,
             ticket_price=booking_request.ticket_price,
             db=db
         )
@@ -564,7 +702,7 @@ async def book_ticket_with_payment(
         payment_data = {
             "ticket_id": booking_result["ticket_id"],
             "amount": pay_amount,
-            "payment_method": str(payment_request.payment_method),
+            "payment_method": normalized_method,
             "upi_id": payment_request.upi_id,
             "conductor_id": booking_request.conductor_id,
             "transaction_id": booking_result.get("qr_code_id", "")

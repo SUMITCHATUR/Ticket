@@ -11,6 +11,7 @@
   
   body {
     @apply bg-gray-50 text-gray-900;
+    background: linear-gradient(180deg, #f9fbff 0%, #eef6ff 48%, #f8fafc 100%);
   }
   
   * {
@@ -52,19 +53,19 @@
   }
   
   .seat {
-    @apply w-10 h-10 rounded-lg border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-sm font-medium;
+    @apply h-12 min-w-[3.8rem] rounded-2xl border-2 px-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-[0.95rem] font-semibold leading-tight;
   }
   
   .seat-available {
-    @apply seat border-gray-300 bg-white hover:border-primary-500 hover:bg-primary-50;
+    @apply seat border-slate-300 bg-white text-slate-800 hover:border-cyan-500 hover:bg-cyan-50;
   }
   
   .seat-selected {
-    @apply seat border-primary-600 bg-primary-600 text-white;
+    @apply seat border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-200;
   }
   
   .seat-booked {
-    @apply seat border-gray-400 bg-gray-100 text-gray-400 cursor-not-allowed;
+    @apply seat border-slate-300 bg-slate-100 text-slate-400 cursor-not-allowed;
   }
   
   .seat-disabled {
@@ -117,7 +118,7 @@
 /* Mobile optimizations */
 @media (max-width: 768px) {
   .seat {
-    @apply w-8 h-8 text-xs;
+    @apply h-10 min-w-[3.1rem] rounded-xl px-1.5 text-xs;
   }
 }
 
@@ -145,8 +146,7 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-main);
-  /* Premium subtle gradient background */
-  background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+  background: linear-gradient(180deg, #f9fbff 0%, #eef6ff 48%, #f8fafc 100%);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }

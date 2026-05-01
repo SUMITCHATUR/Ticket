@@ -149,7 +149,7 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
       {/* Payment Methods */}
       <div>
         <h3 className="font-medium text-gray-900 mb-4">Select Payment Method</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
           {paymentMethods.map((method) => {
             const Icon = method.icon
             return (
@@ -157,7 +157,7 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
                 key={method.id}
                 onClick={() => handleMethodSelect(method.id)}
                 className={`
-                  p-4 border rounded-lg cursor-pointer transition-all
+                  rounded-2xl border p-4 cursor-pointer transition-all
                   ${selectedMethod === method.id 
                     ? 'border-primary-500 bg-primary-50' 
                     : 'border-gray-200 hover:border-gray-300'
@@ -181,8 +181,8 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
       </div>
 
       {/* Payment Details */}
-      <div className="p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center justify-between mb-4">
+      <div className="rounded-2xl bg-gray-50 p-4">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <span className="text-lg font-medium text-gray-900">Total Amount</span>
           <span className="text-2xl font-bold text-primary-600">Rs. {amount}</span>
         </div>
@@ -215,7 +215,7 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
                 <button
                   onClick={handleGenerateQR}
                   disabled={isLoading}
-                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isLoading ? (
                     <>
@@ -278,7 +278,7 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
                   <button
                     onClick={checkPaymentStatus}
                     disabled={checkingPayment}
-                    className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 py-3 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {checkingPayment ? (
                       <>
@@ -311,7 +311,7 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
               <button
                 onClick={handleGenerateQR}
                 disabled={isLoading}
-                className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-4 py-3 text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isLoading ? (
                   <>
