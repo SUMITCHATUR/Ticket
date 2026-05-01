@@ -380,7 +380,9 @@ const BookTicket = () => {
         toast.error('Failed to book ticket')
       }
     } catch (error) {
-      toast.error('Booking failed. Please try again.')
+      const message = error?.response?.data?.detail || error?.response?.data?.message || error?.message || 'Booking failed. Please try again.'
+      toast.error(message)
+      console.error('Booking error:', error)
     } finally {
       setLoading(false)
     }

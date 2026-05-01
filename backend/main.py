@@ -402,8 +402,7 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 @app.post("/payment/create")
 @app.post("/api/payment/create")
 async def create_payment(
-    payment_request: ValidatorPaymentRequest,
-    current_user: User = Depends(get_current_active_user)
+    payment_request: ValidatorPaymentRequest
 ):
     """Create payment and generate QR code"""
     try:
@@ -437,8 +436,7 @@ async def create_payment(
 @app.post("/payment/upi/generate-qr")
 @app.post("/api/payment/upi/generate-qr")
 async def generate_upi_qr(
-    upi_request: UPIPaymentRequest,
-    current_user: User = Depends(get_current_active_user)
+    upi_request: UPIPaymentRequest
 ):
     """Generate UPI payment QR code"""
     try:
@@ -494,8 +492,7 @@ async def generate_upi_qr(
 @app.post("/payment/verify/{payment_id}")
 @app.post("/api/payment/verify/{payment_id}")
 async def verify_payment(
-    payment_id: str,
-    current_user: User = Depends(get_current_active_user)
+    payment_id: str
 ):
     """Verify payment status"""
     try:
@@ -519,8 +516,7 @@ class CombinedBookingRequest(BaseModel):
 @app.post("/api/tickets/book-with-payment")
 async def book_ticket_with_payment(
     combined: CombinedBookingRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(check_conductor_role)
+    db: Session = Depends(get_db)
 ):
     booking_request = combined.booking_request
     payment_request = combined.payment_request
