@@ -86,7 +86,7 @@ const BookTicket = () => {
             to: query.to || undefined,
           }
         : {}
-
+      
       const response = await routeAPI.getAll(params)
       setRoutes(response.data)
     } catch (error) {
@@ -116,6 +116,7 @@ const BookTicket = () => {
           }
         }
       }
+      console.log('Generated demoRoutes:', demoRoutes)
       setRoutes(demoRoutes)
     }
   }
