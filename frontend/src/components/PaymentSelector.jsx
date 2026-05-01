@@ -119,6 +119,30 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
     }
   }
 
+  const checkPaymentStatus = async () => {
+    setCheckingPayment(true)
+    try {
+      // Simulate payment verification - in real app, this would call payment API
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const paymentSuccessful = Math.random() > 0.3 // 70% chance of success for demo
+      
+      if (paymentSuccessful) {
+        onPaymentStatusChange?.('success')
+        toast.success('🎉 Payment Successful! UPI payment received successfully.')
+        // Auto-enable booking button after successful payment
+        setTimeout(() => {
+          toast.info('You can now complete your booking!')
+        }, 2000)
+      } else {
+        toast.error('Payment not received yet. Please try again after completing payment.')
+      }
+    } catch (error) {
+      toast.error('Error checking payment status. Please try again.')
+    } finally {
+      setCheckingPayment(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Payment Methods */}
