@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Ticket Booking System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="min-h-screen flex items-center justify-center">
+            <div class="max-w-md w-full space-y-8 p-8">
+                <div>
+                    <h2 class="text-center text-3xl font-bold text-gray-900">Bus Ticket Booking</h2>
+                    <p class="mt-2 text-center text-sm text-gray-600">Demo Mode</p>
+                </div>
+                <form class="mt-8 space-y-6" onsubmit="handleLogin(event)">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" id="username" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Sign In
+                    </button>
+                </form>
+                <div class="text-center text-sm text-gray-500">
+                    <p>Demo Credentials:</p>
+                    <p>Admin: admin / admin123</p>
+                    <p>Conductor: conductor / conductor123</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboardScreen" class="hidden min-h-screen">
+            <nav class="bg-blue-600 text-white p-4">
+                <div class="container mx-auto flex justify-between items-center">
+                    <h1 class="text-xl font-bold">Bus Ticket Booking</h1>
+                    <div class="flex items-center space-x-4">
+                        <span id="userDisplay"></span>
+                        <button onclick="logout()" class="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded">Logout</button>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="flex">
+                <!-- Sidebar -->
+                <div class="w-64 bg-gray-800 text-white min-h-screen">
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold mb-4">Menu</h3>
+                        <ul class="space-y-2">
+                            <li><button onclick="showDashboard()" class="w-full text-left p-2 hover:bg-gray-700 rounded">Dashboard</button></li>
+                            <li><button onclick="showBookTicket()" class="w-full text-left p-2 hover:bg-gray-700 rounded">Book Ticket</button></li>
+                            <li><button onclick="showViewTickets()" class="w-full text-left p-2 hover:bg-gray-700 rounded">View Tickets</button></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="flex-1 p-6">
+                    <!-- Dashboard Content -->
+                    <div id="dashboardContent">
+                        <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div class="bg-white p-6 rounded-lg shadow">
+                                <h3 class="text-lg font-semibold text-gray-700">Today's Tickets</h3>
+                                <p class="text-3xl font-bold text-blue-600">25</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-lg shadow">
+                                <h3 class="text-lg font-semibold text-gray-700">Total Revenue</h3>
+                                <p class="text-3xl font-bold text-green-600">₹12,500</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-lg shadow">
+                                <h3 class="text-lg font-semibold text-gray-700">Active Routes</h3>
+                                <p class="text-3xl font-bold text-purple-600">5</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-4">Recent Tickets</h3>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket ID</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Passenger</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Route</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">TKT-20260426-25</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Demo User</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Mumbai-Pune</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹500</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">Confirmed</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">TKT-20260426-24</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">John Doe</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Delhi-Mumbai</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹800</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">Confirmed</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">TKT-20260426-23</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Jane Smith</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Bangalore-Chennai</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹600</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">Confirmed</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Book Ticket Content -->
+                    <div id="bookTicketContent" class="hidden">
+                        <h2 class="text-2xl font-bold mb-6">Book Ticket</h2>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">From</label>
+                                    <select id="fromCity" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                                        <option value="">Select City</option>
+                                        <option value="Mumbai">Mumbai</option>
+                                        <option value="Pune">Pune</option>
+                                        <option value="Nashik">Nashik</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">To</label>
+                                    <select id="toCity" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                                        <option value="">Select City</option>
+                                        <option value="Mumbai">Mumbai</option>
+                                        <option value="Pune">Pune</option>
+                                        <option value="Nashik">Nashik</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button onclick="searchRoutes()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Search Routes</button>
+                        </div>
+
+                        <div id="routesList" class="mt-6 hidden">
+                            <h3 class="text-lg font-semibold mb-4">Available Routes</h3>
+                            <div class="bg-white p-6 rounded-lg shadow">
+                                <div class="border border-gray-200 rounded-lg p-4 mb-4">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h4 class="font-semibold">Mumbai to Pune</h4>
+                                            <p class="text-sm text-gray-600">AC Sleeper | 08:00 - 10:30</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-lg font-bold text-green-600">₹500</p>
+                                            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Select</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h4 class="font-semibold">Pune to Mumbai</h4>
+                                            <p class="text-sm text-gray-600">AC Sleeper | 14:00 - 16:30</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-lg font-bold text-green-600">₹500</p>
+                                            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Select</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- View Tickets Content -->
+                    <div id="viewTicketsContent" class="hidden">
+                        <h2 class="text-2xl font-bold mb-6">View Tickets</h2>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket ID</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Passenger</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Route</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Seat</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">TKT-20260426-25</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Demo User</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Mumbai-Pune</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">A1</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹500</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">Confirmed</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">TKT-20260426-24</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">John Doe</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Delhi-Mumbai</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">B2</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹800</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">Confirmed</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">TKT-20260426-23</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Jane Smith</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Bangalore-Chennai</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">C3</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹600</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">Confirmed</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if ((username === 'admin' && password === 'admin123') || 
+                (username === 'conductor' && password === 'conductor123')) {
+                currentUser = username;
+                document.getElementById('userDisplay').textContent = username;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('dashboardScreen').classList.remove('hidden');
+                showDashboard();
+            } else {
+                alert('Invalid credentials. Use admin/admin123 or conductor/conductor123');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('dashboardScreen').classList.add('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function showDashboard() {
+            hideAllContent();
+            document.getElementById('dashboardContent').classList.remove('hidden');
+        }
+
+        function showBookTicket() {
+            hideAllContent();
+            document.getElementById('bookTicketContent').classList.remove('hidden');
+        }
+
+        function showViewTickets() {
+            hideAllContent();
+            document.getElementById('viewTicketsContent').classList.remove('hidden');
+        }
+
+        function hideAllContent() {
+            document.getElementById('dashboardContent').classList.add('hidden');
+            document.getElementById('bookTicketContent').classList.add('hidden');
+            document.getElementById('viewTicketsContent').classList.add('hidden');
+        }
+
+        function searchRoutes() {
+            const from = document.getElementById('fromCity').value;
+            const to = document.getElementById('toCity').value;
+            
+            if (from && to) {
+                document.getElementById('routesList').classList.remove('hidden');
+            } else {
+                alert('Please select both from and to cities');
+            }
+        }
+    </script>
+</body>
+</html>
