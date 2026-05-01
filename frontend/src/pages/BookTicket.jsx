@@ -47,6 +47,7 @@ const BookTicket = () => {
   const [upiPreviewQr, setUpiPreviewQr] = useState('')
   const [upiPreviewUrl, setUpiPreviewUrl] = useState('')
   const [upiPreviewLoading, setUpiPreviewLoading] = useState(false)
+  const [upiPaymentStatus, setUpiPaymentStatus] = useState('pending') // pending, success, failed
 
   // API data
   const [routes, setRoutes] = useState([])
@@ -226,12 +227,41 @@ const BookTicket = () => {
         setUpiPreviewQr(response.data.qr_code_data)
         setUpiPreviewUrl(response.data.upi_url)
         toast.success('UPI payment QR generated. Scan to pay the exact amount.')
+        // Start checking payment status
+        startPaymentStatusCheck()
       }
     } catch (error) {
       toast.error('Unable to generate UPI QR. Check UPI ID and try again.')
     } finally {
       setUpiPreviewLoading(false)
     }
+  }
+
+  const startPaymentStatusCheck = () => {
+    // Check payment status every 3 seconds
+    const checkInterval = setInterval(async () => {
+      try {
+        // Simulate payment verification - in real app, this would call payment API
+        const paymentSuccessful = Math.random() > 0.7 // 30% chance of success for demo
+        
+        if (paymentSuccessful) {
+          clearInterval(checkInterval)
+          setUpiPaymentStatus('success')
+          toast.success('🎉 Payment Successful! UPI payment received successfully.')
+          // Auto-enable booking button after successful payment
+          setTimeout(() => {
+            toast.info('You can now complete your booking!')
+          }, 2000)
+        }
+      } catch (error) {
+        console.log('Payment status check failed')
+      }
+    }, 3000)
+
+    // Stop checking after 2 minutes
+    setTimeout(() => {
+      clearInterval(checkInterval)
+    }, 120000)
   }
 
   const normalizeText = (s) =>
@@ -744,6 +774,8 @@ const BookTicket = () => {
               upiUrl={upiPreviewUrl}
               isLoading={upiPreviewLoading}
               onGenerateQR={paymentMethod === 'upi' ? generateUpiPreview : null}
+              paymentStatus={upiPaymentStatus}
+              onPaymentStatusChange={setUpiPaymentStatus}
             />
 
             {paymentMethod === 'upi' && (

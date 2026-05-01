@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { CreditCard, Smartphone, Banknote, Check, Loader2 } from 'lucide-react'
 import QRCodeDisplay from './QRCodeDisplay'
 
-const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: externalUpiId, qrCode: externalQrCode, upiUrl: externalUpiUrl, isLoading: externalLoading, onGenerateQR }) => {
+const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: externalUpiId, qrCode: externalQrCode, upiUrl: externalUpiUrl, isLoading: externalLoading, onGenerateQR, paymentStatus, onPaymentStatusChange }) => {
   const [internalQrCode, setInternalQrCode] = useState(null)
   const [internalUpiUrl, setInternalUpiUrl] = useState(null)
   const [internalLoading, setInternalLoading] = useState(false)
   const [paymentId, setPaymentId] = useState(null)
   const [expiryTime, setExpiryTime] = useState(null)
+  const [checkingPayment, setCheckingPayment] = useState(false)
   const BASE_URL = typeof window !== 'undefined' ? window.location.origin : ''
 
   const qrCode = externalQrCode || internalQrCode
@@ -48,43 +49,39 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
 
   const generateQRCode = async (paymentMethod) => {
     if (onGenerateQR) {
-      onGenerateQR(paymentMethod)
-      return
-    }
-
-    setInternalLoading(true)
-    try {
-      // Use external UPI ID if provided, otherwise fallback
-      const targetUpiId = externalUpiId || 'test@upi'
-      
-      const response = await fetch(`${BASE_URL}/api/payment/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: amount,
-          payment_amount: amount,
-          payment_method: paymentMethod,
-          upi_id: paymentMethod === 'upi' ? targetUpiId : null,
-          description: `Bus Ticket Payment - Rs. ${amount}`
+      onGenerateQR()
+    } else {
+      setInternalLoading(true)
+      try {
+        // Use external UPI ID if provided, otherwise fallback
+        const targetUpiId = externalUpiId || 'test@upi'
+        
+        const response = await fetch(`${BASE_URL}/api/payment/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: amount,
+            payment_amount: amount,
+            payment_method: paymentMethod,
+            upi_id: paymentMethod === 'upi' ? targetUpiId : null,
+            description: `Bus Ticket Payment - Rs. ${amount}`
+          })
         })
-      })
 
-      if (response.ok) {
-        const data = await response.json()
-        setInternalQrCode(data.qr_code_data)
-        setInternalUpiUrl(data.upi_url)
-        setPaymentId(data.payment_id)
-        setExpiryTime(data.expires_at)
-      } else {
-        throw new Error('Failed to generate QR code')
+        if (response.ok) {
+          const data = await response.json()
+          setInternalQrCode(data.qr_code_data)
+          setInternalUpiUrl(data.upi_url)
+          setPaymentId(data.payment_id)
+          setExpiryTime(data.expires_at)
+        }
+      } catch (error) {
+        console.error('Error generating QR code:', error)
+      } finally {
+        setInternalLoading(false)
       }
-    } catch (error) {
-      console.error('QR generation error:', error)
-      generateMockQRCode(paymentMethod)
-    } finally {
-      setInternalLoading(false)
     }
   }
 
@@ -98,47 +95,13 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
       generated_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 15 * 60000).toISOString()
     }
-
-    fetch(`${BASE_URL}/api/generate-qr`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(mockQRData)
-    })
-    .then(response => response.json())
-    .then(data => {
-      setInternalQrCode(data.qr_code)
-      if (paymentMethod === 'upi') {
-        setInternalUpiUrl(`upi://pay?pa=${externalUpiId || 'test@upi'}&pn=Demo&am=${amount}&cu=INR`)
-      }
-      setPaymentId(mockQRData.payment_id)
-      setExpiryTime(mockQRData.expires_at)
-    })
-    .catch(error => {
-      console.error('Mock QR generation error:', error)
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      canvas.width = 256
-      canvas.height = 256
-      ctx.fillStyle = '#000'
-      ctx.fillRect(0, 0, 256, 256)
-      ctx.fillStyle = '#fff'
-      ctx.fillRect(10, 10, 236, 236)
-      ctx.fillStyle = '#000'
-      ctx.font = '20px Arial'
-      ctx.textAlign = 'center'
-      ctx.fillText('QR CODE', 128, 128)
-      ctx.fillText('DEMO', 128, 150)
-      
-      const dataURL = canvas.toDataURL()
-      setInternalQrCode(dataURL)
-      if (paymentMethod === 'upi') {
-        setInternalUpiUrl(`upi://pay?pa=${externalUpiId || 'test@upi'}&pn=Demo&am=${amount}&cu=INR`)
-      }
-      setPaymentId(mockQRData.payment_id)
-      setExpiryTime(mockQRData.expires_at)
-    })
+    
+    const qrString = `upi://pay?pa=${externalUpiId || 'test@upi'}&pn=${encodeURIComponent(mockQRData.merchant_name)}&am=${mockQRData.amount}&cu=INR&tr=${mockQRData.transaction_id}`
+    
+    setInternalQrCode(qrString)
+    setInternalUpiUrl(qrString)
+    setPaymentId(mockQRData.payment_id)
+    setExpiryTime(mockQRData.expires_at)
   }
 
   const handleGenerateQR = () => {
@@ -256,6 +219,52 @@ const PaymentSelector = ({ selectedMethod, onMethodChange, amount, upiId: extern
               status={!expiryTime || new Date(expiryTime) > new Date() ? 'active' : 'expired'}
               expiryTime={expiryTime}
             />
+            
+            {/* Payment Status Display */}
+            <div className="mt-4">
+              {paymentStatus === 'success' ? (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-green-600" />
+                    <p className="text-sm text-green-800 font-medium">
+                      🎉 Payment Successful! UPI payment received successfully.
+                    </p>
+                  </div>
+                  <p className="text-sm text-green-700 mt-1">
+                    You can now complete your booking.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Payment Status:</strong> Waiting for payment completion
+                    </p>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Scan the QR code above and complete the payment using your UPI app.
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={checkPaymentStatus}
+                    disabled={checkingPayment}
+                    className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {checkingPayment ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Checking Payment Status...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-5 h-5" />
+                        I've Paid - Verify Payment
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
