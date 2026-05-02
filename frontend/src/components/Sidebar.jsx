@@ -45,14 +45,14 @@ const Sidebar = () => {
 
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-950/35 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-[17rem] border-r border-white/70 bg-white/92 shadow-2xl shadow-slate-300/40 backdrop-blur-xl
+          fixed inset-y-0 left-0 z-50 w-[17rem] border-r border-white/70 bg-white/92 shadow-2xl shadow-slate-300/40
           transform transition-transform duration-300 ease-in-out lg:static lg:w-72 lg:translate-x-0 lg:rounded-[32px] lg:border lg:shadow-lg lg:shadow-slate-200/60
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
