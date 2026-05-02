@@ -13,6 +13,7 @@ from typing import List, Optional, Dict, Any
 from datetime import date, time, datetime, timedelta
 import logging
 import urllib.parse
+import os
 import qrcode
 import base64
 from io import BytesIO
@@ -27,10 +28,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
+frontend_origin = os.getenv("FRONTEND_URL")
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://ticketsbus.netlify.app",
+]
+if frontend_origin:
+    allowed_origins.append(frontend_origin)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.netlify\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

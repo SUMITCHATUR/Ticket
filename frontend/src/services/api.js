@@ -2,14 +2,15 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 
 // Create axios instance
-// VITE_API_URL should be your backend root (e.g. https://your-backend.onrender.com)
-// On Render: set VITE_API_URL in Environment Variables of the frontend service
-const rawBase = '' // Demo mode - no backend dependency
-const originBase = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : ''
-const baseRoot = rawBase ? rawBase.replace(/\/$/, '') : originBase
-const baseURL = baseRoot
-  ? `${baseRoot.replace(/\/api\/?$/, '')}/api`
-  : '/api'
+// Netlify can either inject VITE_API_URL at build time or proxy /api using netlify.toml.
+const productionBackend = 'https://ticket-backend-yvyi.onrender.com'
+const netlifyFallback =
+  typeof window !== 'undefined' && window.location?.hostname?.includes('netlify.app')
+    ? productionBackend
+    : ''
+const rawBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || netlifyFallback
+const normalizedRoot = rawBase ? rawBase.replace(/\/api\/?$/, '').replace(/\/$/, '') : ''
+const baseURL = normalizedRoot ? `${normalizedRoot}/api` : '/api'
 
 const api = axios.create({
   baseURL,

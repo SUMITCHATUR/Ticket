@@ -1,15 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { 
-  Search, 
-  Filter, 
-  Calendar,
-  Download,
-  Eye,
-  Ticket,
-  CheckCircle,
-  XCircle,
-  Clock
-} from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { CheckCircle, Clock, Download, Eye, Search, Ticket, X, XCircle } from 'lucide-react'
 import { ticketAPI } from '../services/api'
 
 const ViewTickets = () => {
@@ -44,23 +34,20 @@ const ViewTickets = () => {
   const filterTickets = () => {
     let filtered = tickets
 
-    // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(ticket =>
+      filtered = filtered.filter((ticket) =>
         ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ticket.passenger_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ticket.route.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
-    // Status filter
     if (filterStatus !== 'all') {
-      filtered = filtered.filter(ticket => ticket.status.toLowerCase() === filterStatus)
+      filtered = filtered.filter((ticket) => ticket.status.toLowerCase() === filterStatus)
     }
 
-    // Date filter
     if (filterDate) {
-      filtered = filtered.filter(ticket => ticket.booking_date === filterDate)
+      filtered = filtered.filter((ticket) => ticket.booking_date === filterDate)
     }
 
     setFilteredTickets(filtered)
@@ -69,33 +56,33 @@ const ViewTickets = () => {
   const getStatusIcon = (status) => {
     switch (status.toLowerCase()) {
       case 'confirmed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />
+        return <CheckCircle className="h-4 w-4 text-emerald-600" />
       case 'completed':
-        return <CheckCircle className="w-4 h-4 text-blue-600" />
+        return <CheckCircle className="h-4 w-4 text-sky-600" />
       case 'cancelled':
-        return <XCircle className="w-4 h-4 text-red-600" />
+        return <XCircle className="h-4 w-4 text-red-600" />
       default:
-        return <Clock className="w-4 h-4 text-yellow-600" />
+        return <Clock className="h-4 w-4 text-amber-600" />
     }
   }
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case 'confirmed':
-        return 'bg-green-100 text-green-800'
+        return 'bg-emerald-100 text-emerald-700'
       case 'completed':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-sky-100 text-sky-700'
       case 'cancelled':
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-100 text-red-700'
       default:
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-amber-100 text-amber-700'
     }
   }
 
   const exportTickets = () => {
     const csvContent = [
       ['Ticket Number', 'Passenger', 'Route', 'Bus', 'Seat', 'Amount', 'Payment Method', 'Status', 'Booking Date'],
-      ...filteredTickets.map(ticket => [
+      ...filteredTickets.map((ticket) => [
         ticket.ticket_number,
         ticket.passenger_name,
         ticket.route,
@@ -106,7 +93,9 @@ const ViewTickets = () => {
         ticket.status,
         ticket.booking_date
       ])
-    ].map(row => row.join(',')).join('\n')
+    ]
+      .map((row) => row.join(','))
+      .join('\n')
 
     const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -119,239 +108,209 @@ const ViewTickets = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="spinner w-8 h-8"></div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="spinner h-8 w-8"></div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">View Tickets</h1>
-          <p className="text-gray-600">Manage and view all ticket bookings</p>
+    <div className="space-y-5 lg:space-y-6">
+      <section className="rounded-[28px] bg-gradient-to-br from-slate-950 via-sky-950 to-cyan-900 px-5 py-6 text-white shadow-xl shadow-sky-950/20">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">
+              Ticket archive
+            </div>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight">View and manage issued tickets</h1>
+            <p className="mt-2 max-w-2xl text-sm text-cyan-50/85">
+              Search, filter and export booking history with a cleaner card-first layout for mobile and desktop.
+            </p>
+          </div>
+
+          <button
+            onClick={exportTickets}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
         </div>
+      </section>
+
+      <div className="rounded-[28px] border border-white/70 bg-white/88 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5 lg:p-6">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+          <div className="relative md:col-span-2">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by ticket, passenger or route"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input rounded-2xl border-slate-200 bg-slate-50 pl-10"
+            />
+          </div>
+
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="input rounded-2xl border-slate-200 bg-slate-50"
+          >
+            <option value="all">All Status</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+
+          <input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="input rounded-2xl border-slate-200 bg-slate-50"
+          />
+        </div>
+
         <button
-          onClick={exportTickets}
-          className="btn-secondary flex items-center"
+          onClick={() => {
+            setSearchTerm('')
+            setFilterStatus('all')
+            setFilterDate('')
+          }}
+          className="mt-3 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
         >
-          <Download className="w-4 h-4 mr-2" />
-          Export CSV
+          Clear Filters
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="card p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search tickets..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input pl-10"
-            />
-          </div>
-
-          {/* Status Filter */}
-          <div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="input"
-            >
-              <option value="all">All Status</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-
-          {/* Date Filter */}
-          <div>
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="input"
-            />
-          </div>
-
-          {/* Clear Filters */}
-          <button
-            onClick={() => {
-              setSearchTerm('')
-              setFilterStatus('all')
-              setFilterDate('')
-            }}
-            className="btn-secondary"
+      <div className="grid grid-cols-1 gap-4">
+        {filteredTickets.map((ticket) => (
+          <div
+            key={ticket.id}
+            className="rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5"
           >
-            Clear Filters
-          </button>
-        </div>
-      </div>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-slate-950">{ticket.ticket_number}</p>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${getStatusColor(ticket.status)}`}>
+                    {getStatusIcon(ticket.status)}
+                    {ticket.status}
+                  </span>
+                </div>
 
-      {/* Tickets Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ticket Details
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Passenger
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Route
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Seat & Bus
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTickets.map((ticket) => (
-                <tr key={ticket.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <p className="font-medium text-gray-900">{ticket.ticket_number}</p>
-                      <p className="text-sm text-gray-500">{ticket.booking_date} at {ticket.booking_time}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <p className="font-medium text-gray-900">{ticket.passenger_name}</p>
-                      <p className="text-sm text-gray-500">{ticket.payment_method}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <p className="font-medium text-gray-900">{ticket.route}</p>
-                      <p className="text-sm text-gray-500">Departs: {ticket.departure_time}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <p className="font-medium text-gray-900">Seat {ticket.seat_number}</p>
-                      <p className="text-sm text-gray-500">{ticket.bus_number}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="font-medium text-gray-900">Rs. {ticket.amount}</p>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {getStatusIcon(ticket.status)}
-                      <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(ticket.status)}`}>
-                        {ticket.status}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => setSelectedTicket(ticket)}
-                      className="text-primary-600 hover:text-primary-900 font-medium"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Empty State */}
-        {filteredTickets.length === 0 && (
-          <div className="text-center py-12">
-            <Ticket className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No tickets found</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Try adjusting your filters or search terms
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Ticket Detail Modal */}
-      {selectedTicket && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Ticket Details</h3>
-              <button
-                onClick={() => setSelectedTicket(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Ticket Number</p>
-                  <p className="font-medium">{selectedTicket.ticket_number}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Passenger</p>
-                  <p className="font-medium">{selectedTicket.passenger_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Route</p>
-                  <p className="font-medium">{selectedTicket.route}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Bus Number</p>
-                  <p className="font-medium">{selectedTicket.bus_number}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Seat</p>
-                  <p className="font-medium">{selectedTicket.seat_number}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Amount</p>
-                  <p className="font-medium">Rs. {selectedTicket.amount}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Payment Method</p>
-                  <p className="font-medium capitalize">{selectedTicket.payment_method}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Status</p>
-                  <div className="flex items-center">
-                    {getStatusIcon(selectedTicket.status)}
-                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedTicket.status)}`}>
-                      {selectedTicket.status}
-                    </span>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Passenger</p>
+                    <p className="mt-1 font-medium text-slate-900">{ticket.passenger_name}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Route</p>
+                    <p className="mt-1 font-medium text-slate-900">{ticket.route}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Seat & Bus</p>
+                    <p className="mt-1 font-medium text-slate-900">Seat {ticket.seat_number}</p>
+                    <p className="text-xs text-slate-500">{ticket.bus_number}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Amount</p>
+                    <p className="mt-1 font-medium text-emerald-700">Rs. {ticket.amount}</p>
+                    <p className="text-xs text-slate-500 capitalize">{ticket.payment_method}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div className="flex items-center justify-between gap-3 lg:block lg:text-right">
                 <div>
-                  <p className="text-sm text-gray-500">Booking Date</p>
-                  <p className="font-medium">{selectedTicket.booking_date} at {selectedTicket.booking_time}</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Booked</p>
+                  <p className="mt-1 text-sm font-medium text-slate-700">{ticket.booking_date}</p>
+                  <p className="text-xs text-slate-500">{ticket.booking_time}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Journey Date</p>
-                  <p className="font-medium">{selectedTicket.journey_date} at {selectedTicket.departure_time}</p>
+                <button
+                  onClick={() => setSelectedTicket(ticket)}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+                >
+                  <Eye className="h-4 w-4" />
+                  Details
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {filteredTickets.length === 0 && (
+          <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-12 text-center">
+            <Ticket className="mx-auto mb-4 h-12 w-12 text-slate-400" />
+            <p className="text-slate-600">No tickets found</p>
+            <p className="mt-1 text-sm text-slate-400">Try adjusting your search or date filters</p>
+          </div>
+        )}
+      </div>
+
+      {selectedTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[32px] border border-white/70 bg-white p-5 shadow-2xl shadow-slate-900/20 sm:p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-950">Ticket Details</h3>
+                <p className="text-sm text-slate-500">Complete booking information</p>
+              </div>
+              <button
+                onClick={() => setSelectedTicket(null)}
+                className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-500">Ticket Number</p>
+                <p className="font-medium text-slate-900">{selectedTicket.ticket_number}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-500">Passenger</p>
+                <p className="font-medium text-slate-900">{selectedTicket.passenger_name}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-500">Route</p>
+                <p className="font-medium text-slate-900">{selectedTicket.route}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-500">Bus Number</p>
+                <p className="font-medium text-slate-900">{selectedTicket.bus_number}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-500">Seat</p>
+                <p className="font-medium text-slate-900">{selectedTicket.seat_number}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-500">Amount</p>
+                <p className="font-medium text-emerald-700">Rs. {selectedTicket.amount}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-500">Payment Method</p>
+                <p className="font-medium capitalize text-slate-900">{selectedTicket.payment_method}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-500">Status</p>
+                <div className="mt-1 flex items-center gap-2">
+                  {getStatusIcon(selectedTicket.status)}
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusColor(selectedTicket.status)}`}>
+                    {selectedTicket.status}
+                  </span>
                 </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-500">Booking Date</p>
+                <p className="font-medium text-slate-900">{selectedTicket.booking_date} at {selectedTicket.booking_time}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-500">Journey Date</p>
+                <p className="font-medium text-slate-900">{selectedTicket.journey_date} at {selectedTicket.departure_time}</p>
               </div>
             </div>
           </div>
