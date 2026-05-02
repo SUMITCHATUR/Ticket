@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from app.database import get_db, test_connection
+from app.database import get_db, test_connection, SessionLocal, engine
 from app import models
 from app.payment_system import QRCodeGenerator, PaymentGateway, PaymentProcessor, PaymentResponse, UPIPaymentRequest, normalize_payment_method
 from app.validators import TicketBookingRequest, PaymentRequest as ValidatorPaymentRequest
@@ -27,6 +27,20 @@ app = FastAPI(
     description="Smart Bus Ticket Booking System with Payment and QR Scanner",
     version="1.0.0"
 )
+
+
+@app.on_event("startup")
+def initialize_app():
+    try:
+        models.Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        try:
+            ensure_demo_routes(db)
+        finally:
+            db.close()
+        logger.info("Startup initialization completed")
+    except Exception as exc:
+        logger.error(f"Startup initialization failed: {exc}")
 
 frontend_origin = os.getenv("FRONTEND_URL")
 allowed_origins = [
@@ -373,16 +387,43 @@ def create_bus(bus: BusBase, db: Session = Depends(get_db)):
     return db_bus
 
 # Routes endpoints
-@app.get("/routes/", response_model=List[Route])
-@app.get("/api/routes/", response_model=List[Route])
+@app.get("/routes/")
+@app.get("/api/routes/")
 def get_routes(db: Session = Depends(get_db)):
-    ensure_demo_routes(db)
-    routes = db.query(models.Route).order_by(
-        models.Route.source_city.asc(),
-        models.Route.destination_city.asc(),
-        models.Route.base_fare.asc()
-    ).all()
-    return [Route.from_orm(route) for route in routes]
+    try:
+        ensure_demo_routes(db)
+    except Exception as exc:
+        logger.error(f"Demo route seeding failed: {exc}")
+        db.rollback()
+
+    try:
+        routes = db.query(models.Route).order_by(
+            models.Route.source_city.asc(),
+            models.Route.destination_city.asc(),
+            models.Route.base_fare.asc()
+        ).all()
+
+        result = []
+        for route in routes:
+            result.append({
+                "route_id": route.route_id,
+                "route_name": route.route_name or "",
+                "source_city": route.source_city or "",
+                "destination_city": route.destination_city or "",
+                "distance_km": float(route.distance_km or 0),
+                "estimated_time_hours": float(route.estimated_time_hours or 0),
+                "base_fare": float(route.base_fare or 0),
+                "travel_date": str(route.travel_date) if route.travel_date else "",
+                "departure_time": str(route.departure_time) if route.departure_time else "",
+                "arrival_time": str(route.arrival_time) if route.arrival_time else "",
+                "status": route.status or "Scheduled",
+                "created_at": str(route.created_at) if getattr(route, "created_at", None) else ""
+            })
+
+        return result
+    except Exception as exc:
+        logger.error(f"Routes fetch failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Routes fetch failed: {str(exc)}")
 
 @app.post("/routes/", response_model=Route)
 @app.post("/api/routes/", response_model=Route)
