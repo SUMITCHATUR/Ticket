@@ -3,10 +3,12 @@ services:
     name: ticket-backend
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python init_db.py
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
       - key: DATABASE_URL
         sync: false
+      - key: FRONTEND_URL
+        value: https://ticketsbus.netlify.app
