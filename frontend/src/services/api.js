@@ -2,13 +2,13 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 
 // Create axios instance
-// Netlify can either inject VITE_API_URL at build time or proxy /api using netlify.toml.
-const productionBackend = 'https://ticket-backend-yvyi.onrender.com'
-const netlifyFallback =
+// On Netlify we intentionally use the same-origin /api path so redirects in netlify.toml
+// can proxy requests to Render without browser-side CORS issues.
+const isNetlify =
   typeof window !== 'undefined' && window.location?.hostname?.includes('netlify.app')
-    ? productionBackend
-    : ''
-const rawBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || netlifyFallback
+const rawBase = isNetlify
+  ? ''
+  : (import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || '')
 const normalizedRoot = rawBase ? rawBase.replace(/\/api\/?$/, '').replace(/\/$/, '') : ''
 const baseURL = normalizedRoot ? `${normalizedRoot}/api` : '/api'
 
