@@ -10,7 +10,7 @@ load_dotenv()
 # Database configuration
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:password@localhost:5432/Ticket"
+    "sqlite:///./ticket.db"
 )
 
 # Create engine
