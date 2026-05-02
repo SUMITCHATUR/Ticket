@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 // Create axios instance
 // VITE_API_URL should be your backend root (e.g. https://your-backend.onrender.com)
 // On Render: set VITE_API_URL in Environment Variables of the frontend service
-const rawBase = import.meta.env.VITE_API_URL || 'https://ticket-backend-yvyi.onrender.com'
+const rawBase = 'https://ticket-backend-yvyi.onrender.com'
 const originBase = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : ''
 const baseRoot = rawBase ? rawBase.replace(/\/$/, '') : originBase
 const baseURL = baseRoot
