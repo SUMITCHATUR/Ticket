@@ -122,7 +122,7 @@ const ViewTickets = () => {
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">
               Ticket archive
             </div>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight">View and manage issued tickets</h1>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-white">View and manage issued tickets</h1>
             <p className="mt-2 max-w-2xl text-sm text-cyan-50/85">
               Search, filter and export booking history with a cleaner card-first layout for mobile and desktop.
             </p>

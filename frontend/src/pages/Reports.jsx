@@ -88,7 +88,7 @@ const Reports = () => {
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">
               Reports
             </div>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight">Revenue and payment insights</h1>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-white">Revenue and payment insights</h1>
             <p className="mt-2 max-w-2xl text-sm text-emerald-50/85">
               Clean summary reports for route earnings, transaction mix and quick CSV exports.
             </p>

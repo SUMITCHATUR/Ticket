@@ -75,7 +75,7 @@ const Dashboard = () => {
               Live overview
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight lg:text-4xl">Daily ticket operations at a glance</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-white lg:text-4xl">Daily ticket operations at a glance</h1>
               <p className="mt-2 max-w-2xl text-sm text-cyan-50/85 lg:text-base">
                 Quick numbers, recent activity and system health in a single compact dashboard built for conductor workflow.
               </p>

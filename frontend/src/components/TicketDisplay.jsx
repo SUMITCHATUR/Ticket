@@ -78,7 +78,7 @@ const TicketDisplay = ({ ticket }) => {
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">
                   Booking success
                 </div>
-                <h2 className="mt-3 text-3xl font-bold">Ticket Confirmed</h2>
+                <h2 className="mt-3 text-3xl font-bold text-white">Ticket Confirmed</h2>
                 <p className="mt-2 text-sm text-cyan-50/85">
                   Passenger booking complete ho gayi hai. Ticket ab travel ke liye ready hai.
                 </p>

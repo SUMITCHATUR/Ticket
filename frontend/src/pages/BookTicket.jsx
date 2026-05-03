@@ -254,7 +254,7 @@ const BookTicket = () => {
               Maharashtra Route Booking
             </div>
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+              <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
                 Start Route aur End Route select karke fares instantly dekho
               </h1>
               <p className="max-w-2xl text-sm text-cyan-50/85 sm:text-[15px] lg:text-base">
