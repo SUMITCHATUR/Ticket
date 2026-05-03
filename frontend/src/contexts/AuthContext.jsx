@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import api from '../services/api'
+import api, { authAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 const AuthContext = createContext()
@@ -41,34 +41,33 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = async (credentials) => {
-    // EMERGENCY FIX - Always use demo mode for 100% success
-    if (credentials.username === 'admin' && credentials.password === 'admin123') {
-      const mockToken = 'mock-token-for-demo'
-      localStorage.setItem('token', mockToken)
+    try {
+      const loginResponse = await authAPI.login(credentials)
+      const token = loginResponse.data?.access_token
+
+      if (!token) {
+        toast.error('Login token nahi mila.')
+        return false
+      }
+
+      localStorage.setItem('token', token)
+      const profileResponse = await authAPI.getMe()
+      const profile = profileResponse.data
       setUser({
-        username: 'admin',
-        full_name: 'System Administrator',
-        email: 'admin@busticket.com',
-        role: 'admin'
+        username: profile.username,
+        full_name: profile.full_name,
+        email: profile.email,
+        role: profile.role || 'conductor'
       })
       toast.success('Login successful!')
       return true
-    } else if (credentials.username === 'conductor' && credentials.password === 'conductor123') {
-      const mockToken = 'mock-token-for-demo'
-      localStorage.setItem('token', mockToken)
-      setUser({
-        username: 'conductor',
-        full_name: 'Bus Conductor',
-        email: 'conductor@busticket.com',
-        role: 'conductor'
-      })
-      toast.success('Login successful!')
-      return true
+    } catch (error) {
+      localStorage.removeItem('token')
+      if (!error?.response?.data?.detail) {
+        toast.error('Login failed. Please try again.')
+      }
+      return false
     }
-    
-    // Always show error for wrong credentials
-    toast.error('Invalid credentials')
-    return false
   }
 
   const logout = () => {
@@ -77,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     toast.success('Logged out successfully')
   }
 
-  const isAdmin = false // Removed - only conductor mode
+  const isAdmin = user?.role === 'admin'
   const isConductor = user?.role === 'conductor'
 
   const value = {

@@ -1,31 +1,46 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, List, Menu, Ticket, X } from 'lucide-react'
+import { BarChart3, Home, List, Menu, Ticket, X } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const location = useLocation()
+  const { user } = useAuth()
 
-  const menuItems = [
-    {
-      name: 'Dashboard',
-      path: '/',
-      icon: Home,
-      description: 'Overview and stats'
-    },
-    {
-      name: 'Book Ticket',
-      path: '/book-ticket',
-      icon: Ticket,
-      description: 'Create new tickets'
-    },
-    {
-      name: 'View Tickets',
-      path: '/view-tickets',
-      icon: List,
-      description: 'Ticket history'
+  const menuItems = useMemo(() => {
+    const items = [
+      {
+        name: 'Dashboard',
+        path: '/',
+        icon: Home,
+        description: 'Overview and stats'
+      },
+      {
+        name: 'Book Ticket',
+        path: '/book-ticket',
+        icon: Ticket,
+        description: 'Create new tickets'
+      },
+      {
+        name: 'View Tickets',
+        path: '/view-tickets',
+        icon: List,
+        description: 'Ticket history'
+      }
+    ]
+
+    if (user?.role === 'admin') {
+      items.push({
+        name: 'Reports',
+        path: '/reports',
+        icon: BarChart3,
+        description: 'Revenue and summaries'
+      })
     }
-  ]
+
+    return items
+  }, [user])
 
   const isActive = (path) => {
     if (path === '/') {
@@ -98,7 +113,7 @@ const Sidebar = () => {
 
           <div className="mt-auto border-t border-slate-200/80 p-4 lg:p-5">
             <div className="rounded-2xl bg-slate-50 px-3 py-3 text-xs text-slate-500">
-              Data shown in the app is loaded from backend APIs.
+              Signed in as {user?.role || 'conductor'}. Data shown in the app is loaded from backend APIs.
             </div>
           </div>
         </div>

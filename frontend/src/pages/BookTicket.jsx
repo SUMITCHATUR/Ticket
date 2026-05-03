@@ -5,6 +5,7 @@ import {
   CheckCircle,
   IndianRupee,
   MapPin,
+  Receipt,
   Search,
   Users
 } from 'lucide-react'
@@ -39,6 +40,7 @@ const BookTicket = () => {
   const [upiId, setUpiId] = useState('')
   const [qrCode, setQrCode] = useState('')
   const [upiUrl, setUpiUrl] = useState('')
+  const [paymentReference, setPaymentReference] = useState('')
   const [paymentStatus, setPaymentStatus] = useState('pending')
   const [creatingQR, setCreatingQR] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -112,6 +114,7 @@ const BookTicket = () => {
     setSelectedMethod('cash')
     setQrCode('')
     setUpiUrl('')
+    setPaymentReference('')
     setPaymentStatus('pending')
     setBookedTicket(null)
     fetchSeats(route)
@@ -128,6 +131,7 @@ const BookTicket = () => {
     setSelectedMethod(method)
     setQrCode('')
     setUpiUrl('')
+    setPaymentReference('')
     setPaymentStatus('pending')
   }
 
@@ -146,27 +150,21 @@ const BookTicket = () => {
       setCreatingQR(true)
       setPaymentStatus('pending')
 
-      if (selectedMethod === 'upi') {
-        const response = await paymentAPI.generateUPIQR({
-          upi_id: upiId.trim(),
-          amount: fareAmount,
-          merchant_name: 'Bus Ticket System',
-          transaction_note: `${selectedRoute.route_name} booking`
-        })
-        setQrCode(response.data.qr_code_data || '')
-        setUpiUrl(response.data.upi_url || '')
-      } else if (selectedMethod === 'online') {
+      if (selectedMethod === 'upi' || selectedMethod === 'online') {
         const response = await paymentAPI.create({
           payment_amount: fareAmount,
-          payment_method: 'Online'
+          payment_method: selectedMethod === 'upi' ? 'UPI' : 'Online',
+          upi_id: selectedMethod === 'upi' ? upiId.trim() : null
         })
         setQrCode(response.data.qr_code_data || '')
-        setUpiUrl(response.data.payment_url || '')
+        setUpiUrl(response.data.upi_url || response.data.payment_url || '')
+        setPaymentReference(response.data.payment_id || response.data.transaction_id || '')
       }
     } catch (error) {
       console.error('Error generating QR:', error)
       setQrCode('')
       setUpiUrl('')
+      setPaymentReference('')
       toast.error('Payment QR generate nahi ho paaya.')
     } finally {
       setCreatingQR(false)
@@ -225,9 +223,12 @@ const BookTicket = () => {
         seat: data.ticket?.seat_number || selectedSeat.number,
         amount: fareAmount,
         paymentMethod: selectedMethod,
-        paymentStatus: selectedMethod === 'upi' ? 'Success' : 'Pending',
-        paymentTransaction: data.payment?.transaction_id,
-        paymentQr: data.payment?.qr_code_data || qrCode
+        paymentStatus: selectedMethod === 'cash' ? 'Success' : 'Verified',
+        paymentTransaction: data.payment?.transaction_id || paymentReference,
+        paymentQr: data.payment?.qr_code_data || qrCode,
+        boardingDate: selectedRoute.travel_date,
+        departureTime: selectedRoute.departure_time,
+        arrivalTime: selectedRoute.arrival_time
       }
 
       setBookedTicket(ticketData)
@@ -546,6 +547,7 @@ const BookTicket = () => {
               upiId={upiId}
               qrCode={qrCode}
               upiUrl={upiUrl}
+              paymentId={paymentReference}
               isLoading={creatingQR}
               onGenerateQR={handleGenerateQR}
               paymentStatus={paymentStatus}
@@ -566,6 +568,20 @@ const BookTicket = () => {
               <div className="rounded-2xl bg-slate-50 p-4">
                 <p className="text-sm text-gray-500">Passengers</p>
                 <p className="font-medium text-gray-900 flex items-center gap-2"><Users className="w-4 h-4" /> 1</p>
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-[24px] border border-slate-200 bg-gradient-to-r from-slate-50 to-cyan-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                  <Receipt className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Final booking check</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Route, seat, passenger details aur payment status confirm karke booking complete karein.
+                  </p>
+                </div>
               </div>
             </div>
 
