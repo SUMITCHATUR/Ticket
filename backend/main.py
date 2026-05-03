@@ -255,7 +255,59 @@ def build_maharashtra_route_templates():
 DEMO_ROUTE_TEMPLATES = build_maharashtra_route_templates()
 
 
+def ensure_core_demo_data(db: Session):
+    created = False
+
+    conductor = db.query(models.Conductor).order_by(models.Conductor.conductor_id).first()
+    if not conductor:
+        conductor = models.Conductor(
+            conductor_name="Demo Conductor",
+            employee_id="EMP001",
+            contact_number="9876543210",
+            email="conductor@busticket.com",
+            joining_date=date.today() - timedelta(days=90),
+            status="Active"
+        )
+        db.add(conductor)
+        db.flush()
+        created = True
+
+    bus = db.query(models.Bus).order_by(models.Bus.bus_id).first()
+    if not bus:
+        bus = models.Bus(
+            bus_number="MH-01-AB-1234",
+            bus_name="Express Bus",
+            bus_type="AC Sleeper",
+            total_seats=40,
+            available_seats=40,
+            conductor_id=conductor.conductor_id,
+            registration_date=date.today() - timedelta(days=60),
+            status="Active"
+        )
+        db.add(bus)
+        db.flush()
+        created = True
+
+    seat_count = db.query(models.Seat).filter(models.Seat.bus_id == bus.bus_id).count()
+    if seat_count == 0:
+        for i in range(1, 41):
+            seat_type = "Sleeper" if i <= 20 else "Semi-Sleeper"
+            seat_number = f"A{i}" if i <= 20 else f"B{i - 20}"
+            db.add(models.Seat(
+                bus_id=bus.bus_id,
+                seat_number=seat_number,
+                seat_type=seat_type,
+                status="Available"
+            ))
+        created = True
+
+    if created:
+        db.commit()
+
+
 def ensure_demo_routes(db: Session):
+    ensure_core_demo_data(db)
+
     route_count = db.query(models.Route).count()
     bus_count = db.query(models.Bus).count()
     if bus_count == 0 or route_count >= len(DEMO_ROUTE_TEMPLATES):
