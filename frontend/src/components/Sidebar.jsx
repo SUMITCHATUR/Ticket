@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { BarChart3, Home, List, Menu, Ticket, X } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContextFixed'
+import { useAuth } from '../contexts/AuthContext'
 
 const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)

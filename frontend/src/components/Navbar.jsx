@@ -1,6 +1,6 @@
 import React from 'react'
 import { Bus, LogOut, User } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContextFixed'
+import { useAuth } from '../contexts/AuthContext'
 
 const Navbar = () => {
   const { user, logout } = useAuth()

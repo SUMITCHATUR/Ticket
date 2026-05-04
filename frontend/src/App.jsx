@@ -7,8 +7,7 @@ import BookTicket from './pages/BookTicket'
 import ViewTickets from './pages/ViewTickets'
 import Reports from './pages/Reports'
 import Login from './pages/Login'
-import { AuthProvider } from './contexts/AuthContextFixed'
-import { useAuth } from './contexts/AuthContextFixed'
+import { useAuth } from './contexts/AuthContext'
 
 function App() {
   const { user, loading } = useAuth()

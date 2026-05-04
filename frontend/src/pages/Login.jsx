@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { ArrowRight, Bus, Eye, EyeOff, ShieldCheck, Ticket } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContextFixed'
+import { useAuth } from '../contexts/AuthContext'
 
 const Login = () => {
   const [formData, setFormData] = useState({
