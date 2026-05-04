@@ -1,12 +1,30 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-// Base URL configuration
-// Using same-origin /api keeps both Netlify and Vercel deployments talking to Render via rewrites/proxy.
-const baseURL = '/api'
+const RENDER_API_URL = 'https://ticket-backend-yvyi.onrender.com/api'
+
+const resolveBaseURL = () => {
+  if (typeof window === 'undefined') {
+    return '/api'
+  }
+
+  const host = window.location.hostname.toLowerCase()
+
+  if (host.includes('localhost') || host === '127.0.0.1') {
+    return '/api'
+  }
+
+  if (host.endsWith('vercel.app')) {
+    return RENDER_API_URL
+  }
+
+  return '/api'
+}
+
+export const apiBaseURL = resolveBaseURL()
 
 const api = axios.create({
-  baseURL,
+  baseURL: apiBaseURL,
   timeout: 20000, // Increased timeout for mobile connections
   headers: {
     'Content-Type': 'application/json',
