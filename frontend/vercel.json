@@ -9,7 +9,19 @@
       "destination": "https://ticket-backend-yvyi.onrender.com/api/:path*"
     },
     {
-      "source": "/:path((?!api/|assets/|.*\\..*).*)",
+      "source": "/book-ticket",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/view-tickets",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/reports",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/login",
       "destination": "/index.html"
     }
   ]
