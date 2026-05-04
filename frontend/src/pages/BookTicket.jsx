@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   Calendar,
@@ -27,6 +27,7 @@ const INITIAL_PASSENGER = {
 }
 
 const BookTicket = () => {
+  const seatSectionRef = useRef(null)
   const [routes, setRoutes] = useState([])
   const [loadingRoutes, setLoadingRoutes] = useState(true)
   const [loadingSeats, setLoadingSeats] = useState(false)
@@ -47,6 +48,7 @@ const BookTicket = () => {
   const [creatingQR, setCreatingQR] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [bookedTicket, setBookedTicket] = useState(null)
+  const [mobileRouteListCollapsed, setMobileRouteListCollapsed] = useState(false)
 
   useEffect(() => {
     fetchRoutes()
@@ -140,7 +142,11 @@ const BookTicket = () => {
     setPaymentReference('')
     setPaymentStatus('pending')
     setBookedTicket(null)
+    setMobileRouteListCollapsed(true)
     fetchSeats(route)
+    setTimeout(() => {
+      seatSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 150)
   }
 
   const handlePassengerChange = (field, value) => {
@@ -448,6 +454,27 @@ const BookTicket = () => {
           </div>
 
           <div className="p-4 sm:p-5 lg:p-6">
+          {selectedRoute && (
+            <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 lg:hidden">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Selected Route</p>
+                  <p className="mt-1 font-semibold text-slate-900">{selectedRoute.route_name}</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {selectedRoute.source_city} to {selectedRoute.destination_city} • Rs. {Number(selectedRoute.base_fare)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileRouteListCollapsed((current) => !current)}
+                  className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-emerald-700 shadow-sm"
+                >
+                  {mobileRouteListCollapsed ? 'Change Route' : 'Hide List'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {sourceFilter && destinationFilter && (
             <div className="mb-4 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-medium text-cyan-900">
               {sourceFilter} se {destinationFilter} ke sab matching routes aur unka price niche dikh raha hai.
@@ -459,6 +486,64 @@ const BookTicket = () => {
               {Array.from({ length: 3 }).map((_, index) => (
                 <RouteSkeleton key={index} />
               ))}
+            </div>
+          ) : mobileRouteListCollapsed ? (
+            <div className="hidden lg:block">
+              <div className="space-y-3 sm:space-y-4 lg:max-h-[38rem] lg:overflow-y-auto lg:pr-1">
+                {filteredRoutes.map((route) => {
+                  const active = selectedRoute?.route_id === route.route_id
+                  return (
+                    <button
+                      key={route.route_id}
+                      type="button"
+                      onClick={() => handleRouteSelect(route)}
+                      className={`group w-full text-left rounded-[24px] border p-4 sm:p-5 transition-all ${
+                        active
+                          ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-emerald-50 shadow-md shadow-cyan-100'
+                          : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md hover:shadow-slate-200/70'
+                      }`}
+                    >
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-slate-900">{route.route_name}</p>
+                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                              {route.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <MapPin className="w-4 h-4" />
+                            <span>{route.source_city}</span>
+                            <span className="text-slate-300">â€¢</span>
+                            <span>{route.destination_city}</span>
+                          </div>
+                          <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                            <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                              <span className="block text-[11px] uppercase tracking-[0.18em] text-slate-400">Travel Date</span>
+                              <span className="font-medium text-slate-800">{route.travel_date}</span>
+                            </div>
+                            <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                              <span className="block text-[11px] uppercase tracking-[0.18em] text-slate-400">Timing</span>
+                              <span className="font-medium text-slate-800">{route.departure_time} - {route.arrival_time}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-500">
+                            <Calendar className="w-4 h-4" />
+                            <span>{Number(route.distance_km || 0)} km â€¢ {route.estimated_time_hours} hrs</span>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <p className="text-sm text-slate-500">Fare</p>
+                          <p className="text-2xl font-bold text-cyan-700">Rs. {Number(route.base_fare)}</p>
+                          <p className="mt-2 text-xs font-medium text-slate-400 group-hover:text-cyan-600">
+                            {active ? 'Selected' : 'Tap to view seats'}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           ) : (
             <div className="space-y-3 sm:space-y-4 lg:max-h-[38rem] lg:overflow-y-auto lg:pr-1">
@@ -528,7 +613,7 @@ const BookTicket = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="card border border-white/70 bg-white/92 p-4 shadow-lg shadow-slate-200/70 sm:p-5 lg:p-6">
+          <div ref={seatSectionRef} className="card border border-white/70 bg-white/92 p-4 shadow-lg shadow-slate-200/70 sm:p-5 lg:p-6">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Seat Selection</h2>
               {selectedRoute && (
@@ -537,7 +622,11 @@ const BookTicket = () => {
                 </span>
               )}
             </div>
-            {loadingSeats ? (
+            {!selectedRoute ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                Route select karte hi yahin par turant seat options dikh jayenge.
+              </div>
+            ) : loadingSeats ? (
               <SeatSkeleton />
             ) : (
               <SeatGridDirectBooking
