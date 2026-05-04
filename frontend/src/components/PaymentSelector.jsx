@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Banknote, Check, CreditCard, Loader2, Smartphone, AlertCircle, X, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import QRCodeDisplay from './QRCodeDisplay'
-import { buildApiUrl, paymentAPI } from '../services/api'
+import { paymentAPI } from '../services/api'
 
 const PaymentSelector = ({
   selectedMethod,
@@ -167,7 +167,7 @@ const PaymentSelector = ({
     setInternalLoading(true)
     try {
       const targetUpiId = externalUpiId || 'test@upi'
-      const response = await fetch(buildApiUrl('/payment/create'), {
+      const response = await fetch('/api/payment/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

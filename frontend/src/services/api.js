@@ -1,34 +1,14 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-const RENDER_ORIGIN = 'https://ticket-backend-yvyi.onrender.com'
-
-const resolveApiOrigin = () => {
-  if (typeof window === 'undefined') {
-    return ''
-  }
-
-  const host = window.location.hostname.toLowerCase()
-
-  if (host.includes('localhost') || host === '127.0.0.1') {
-    return ''
-  }
-
-  if (host.endsWith('vercel.app')) {
-    return RENDER_ORIGIN
-  }
-
-  return ''
-}
-
-export const apiOrigin = resolveApiOrigin()
+// Netlify and local development both use same-origin /api proxying.
 export const buildApiUrl = (path = '') => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  return apiOrigin ? `${apiOrigin}/api${normalizedPath}` : `/api${normalizedPath}`
+  return `/api${normalizedPath}`
 }
 
 const api = axios.create({
-  baseURL: apiOrigin ? `${apiOrigin}/api` : '/api',
+  baseURL: '/api',
   timeout: 20000, // Increased timeout for mobile connections
   headers: {
     'Content-Type': 'application/json',
@@ -74,8 +54,8 @@ api.interceptors.response.use(
 
 // API service methods
 export const authAPI = {
-  login: (credentials) => api.post(buildApiUrl('/auth/login'), credentials),
-  getMe: () => api.get(buildApiUrl('/auth/me')),
+  login: (credentials) => api.post('/auth/login', credentials),
+  getMe: () => api.get('/auth/me'),
   logout: () => {
     localStorage.removeItem('token')
     window.location.href = '/login'
@@ -83,55 +63,55 @@ export const authAPI = {
 }
 
 export const conductorAPI = {
-  getAll: (params = {}) => api.get(buildApiUrl('/conductors/'), { params }),
-  create: (data) => api.post(buildApiUrl('/conductors/'), data),
-  update: (id, data) => api.put(buildApiUrl(`/conductors/${id}`), data),
-  delete: (id) => api.delete(buildApiUrl(`/conductors/${id}`)),
+  getAll: (params = {}) => api.get('/conductors/', { params }),
+  create: (data) => api.post('/conductors/', data),
+  update: (id, data) => api.put(`/conductors/${id}`, data),
+  delete: (id) => api.delete(`/conductors/${id}`),
 }
 
 export const busAPI = {
-  getAll: (params = {}) => api.get(buildApiUrl('/buses/'), { params }),
-  create: (data) => api.post(buildApiUrl('/buses/'), data),
-  update: (id, data) => api.put(buildApiUrl(`/buses/${id}`), data),
+  getAll: (params = {}) => api.get('/buses/', { params }),
+  create: (data) => api.post('/buses/', data),
+  update: (id, data) => api.put(`/buses/${id}`, data),
 }
 
 export const routeAPI = {
-  getAll: (params = {}) => api.get(buildApiUrl('/routes/'), { params }),
-  create: (data) => api.post(buildApiUrl('/routes/'), data),
-  getById: (id) => api.get(buildApiUrl(`/routes/${id}`)),
-  getAvailableSeats: (routeId) => api.get(buildApiUrl(`/routes/${routeId}/available-seats`)),
+  getAll: (params = {}) => api.get('/routes/', { params }),
+  create: (data) => api.post('/routes/', data),
+  getById: (id) => api.get(`/routes/${id}`),
+  getAvailableSeats: (routeId) => api.get(`/routes/${routeId}/available-seats`),
 }
 
 export const ticketAPI = {
-  getAll: (params = {}) => api.get(buildApiUrl('/tickets/'), { params }),
-  book: (bookingData, paymentData) => api.post(buildApiUrl('/tickets/book-with-payment'), {
+  getAll: (params = {}) => api.get('/tickets/', { params }),
+  book: (bookingData, paymentData) => api.post('/tickets/book-with-payment', {
     booking_request: bookingData,
     payment_request: paymentData
   }),
-  getHistory: (ticketId) => api.get(buildApiUrl(`/payment/history/${ticketId}`)),
-  cancel: (ticketId) => api.post(buildApiUrl(`/tickets/${ticketId}/cancel`)),
+  getHistory: (ticketId) => api.get(`/payment/history/${ticketId}`),
+  cancel: (ticketId) => api.post(`/tickets/${ticketId}/cancel`),
 }
 
 export const paymentAPI = {
-  create: (data) => api.post(buildApiUrl('/payment/create'), data),
-  generateUPIQR: (data) => api.post(buildApiUrl('/payment/upi/generate-qr'), data),
-  verify: (paymentId) => api.post(buildApiUrl(`/payment/verify/${paymentId}`)),
-  complete: (paymentId) => api.post(buildApiUrl(`/payment/complete/${paymentId}`)),
-  refund: (paymentId, amount, reason) => api.post(buildApiUrl(`/payment/refund/${paymentId}`), {
+  create: (data) => api.post('/payment/create', data),
+  generateUPIQR: (data) => api.post('/payment/upi/generate-qr', data),
+  verify: (paymentId) => api.post(`/payment/verify/${paymentId}`),
+  complete: (paymentId) => api.post(`/payment/complete/${paymentId}`),
+  refund: (paymentId, amount, reason) => api.post(`/payment/refund/${paymentId}`, {
     amount,
     reason
   }),
 }
 
 export const reportAPI = {
-  getPaymentSummary: () => api.get(buildApiUrl('/payments/summary')),
-  getRevenueByRoute: () => api.get(buildApiUrl('/revenue/by-route')),
-  getDashboardStats: () => api.get(buildApiUrl('/dashboard/stats')),
+  getPaymentSummary: () => api.get('/payments/summary'),
+  getRevenueByRoute: () => api.get('/revenue/by-route'),
+  getDashboardStats: () => api.get('/dashboard/stats'),
 }
 
 export const systemAPI = {
-  getHealth: () => api.get(buildApiUrl('/health')),
-  getInfo: () => api.get(buildApiUrl('/system/info')),
+  getHealth: () => api.get('/health'),
+  getInfo: () => api.get('/system/info'),
 }
 
 export default api
