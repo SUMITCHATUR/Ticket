@@ -1,20 +1,13 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-// Create axios instance
-// On Netlify we intentionally use the same-origin /api path so redirects in netlify.toml
-// can proxy requests to Render without browser-side CORS issues.
-const isNetlify =
-  typeof window !== 'undefined' && window.location?.hostname?.includes('netlify.app')
-const rawBase = isNetlify
-  ? ''
-  : (import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || '')
-const normalizedRoot = rawBase ? rawBase.replace(/\/api\/?$/, '').replace(/\/$/, '') : ''
-const baseURL = normalizedRoot ? `${normalizedRoot}/api` : '/api'
+// Base URL configuration
+// Using same-origin /api keeps both Netlify and Vercel deployments talking to Render via rewrites/proxy.
+const baseURL = '/api'
 
 const api = axios.create({
   baseURL,
-  timeout: 15000,
+  timeout: 20000, // Increased timeout for mobile connections
   headers: {
     'Content-Type': 'application/json',
   },
@@ -38,22 +31,21 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token')
-      window.location.href = '/login'
-    } else if (error.response?.status === 500) {
-      toast.error('Server error. Please try again later.')
-    } else if (error.code === 'ECONNABORTED') {
-      toast.error('Request timeout. Please check your connection.')
-    } else if (error.response?.data?.detail) {
-      const detail = error.response.data.detail
-      if (Array.isArray(detail)) {
-        toast.error(`Validation Error: ${detail.map(d => `${d.loc ? d.loc.join('.') + ': ' : ''}${d.msg}`).join(', ')}`)
-      } else {
-        toast.error(detail)
+    const status = error.response?.status
+    
+    if (status === 401) {
+      // Only clear and redirect if we're not on the login page already
+      if (!window.location.pathname.includes('/login')) {
+        localStorage.removeItem('token')
+        window.location.href = '/login'
       }
+    } else if (status === 500) {
+      toast.error('Server error. Please try again later.')
+    } else if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK') {
+      // Network errors are common on mobile
+      console.error('Network Error:', error)
     }
+    
     return Promise.reject(error)
   }
 )
@@ -62,6 +54,10 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   getMe: () => api.get('/auth/me'),
+  logout: () => {
+    localStorage.removeItem('token')
+    window.location.href = '/login'
+  }
 }
 
 export const conductorAPI = {
@@ -80,6 +76,7 @@ export const busAPI = {
 export const routeAPI = {
   getAll: (params = {}) => api.get('/routes/', { params }),
   create: (data) => api.post('/routes/', data),
+  getById: (id) => api.get(`/routes/${id}`),
   getAvailableSeats: (routeId) => api.get(`/routes/${routeId}/available-seats`),
 }
 
@@ -90,7 +87,7 @@ export const ticketAPI = {
     payment_request: paymentData
   }),
   getHistory: (ticketId) => api.get(`/payment/history/${ticketId}`),
-  cancel: (ticketId) => api.post(`/tickets/${ticketId}/cancel`),
+  cancel: (ticketId) => api.post(`/tickets/${ticket_id}/cancel`),
 }
 
 export const paymentAPI = {
