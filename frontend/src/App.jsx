@@ -28,12 +28,12 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.42),_transparent_32%),linear-gradient(180deg,_#f8fbff_0%,_#eef7ff_100%)]">
       <Navbar />
       <div className="mx-auto flex w-full max-w-[1600px] xl:px-4">
         <Sidebar />
-        <main className="min-w-0 flex-1 px-3 pb-24 pt-3 sm:px-4 sm:pt-4 lg:px-6 lg:pb-6 lg:pt-6">
-          <div className="mx-auto w-full max-w-[460px] lg:max-w-none">
+        <main className="min-w-0 flex-1 px-3 pb-28 pt-3 sm:px-4 sm:pt-4 lg:px-6 lg:pb-6 lg:pt-6">
+          <div className="mx-auto w-full max-w-[520px] lg:max-w-none">
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/book-ticket" element={<BookTicket />} />

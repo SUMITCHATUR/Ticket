@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import QRCode from 'react-qr-code'
 import {
   CalendarDays,
@@ -15,16 +15,159 @@ import { paymentAPI } from '../services/api'
 const TicketDisplay = ({ ticket }) => {
   const [paymentStatus, setPaymentStatus] = useState(ticket.paymentStatus || 'Pending')
   const [isProcessing, setIsProcessing] = useState(false)
+  const generatedDate = useMemo(() => new Date(), [])
 
-  const downloadTicket = () => {
-    const ticketData = JSON.stringify(ticket, null, 2)
-    const blob = new Blob([ticketData], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `ticket-${ticket.ticket_number}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+  const ticketSummary = {
+    passenger: ticket.passenger || 'Passenger',
+    ticketNumber: ticket.ticket_number || 'TKT',
+    route: ticket.route || 'Route not available',
+    bus: ticket.bus || 'Bus not assigned',
+    seat: ticket.seat || '--',
+    amount: ticket.amount || 0,
+    paymentMethod: ticket.paymentMethod || 'cash',
+    journey: ticket.boardingDate || 'Scheduled trip',
+    timing: `${ticket.departureTime || '--'} - ${ticket.arrivalTime || '--'}`
+  }
+
+  const loadImage = (src) =>
+    new Promise((resolve, reject) => {
+      if (!src) {
+        resolve(null)
+        return
+      }
+
+      const image = new Image()
+      image.crossOrigin = 'anonymous'
+      image.onload = () => resolve(image)
+      image.onerror = () => reject(new Error('Image load failed'))
+      image.src = src
+    })
+
+  const downloadTicket = async () => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 1080
+    canvas.height = 1600
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      return
+    }
+
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
+    gradient.addColorStop(0, '#0f172a')
+    gradient.addColorStop(0.45, '#155e75')
+    gradient.addColorStop(1, '#ecfeff')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    ctx.fillStyle = '#ffffff'
+    const cardX = 60
+    const cardY = 60
+    const cardW = 960
+    const cardH = 1480
+    ctx.beginPath()
+    ctx.roundRect(cardX, cardY, cardW, cardH, 42)
+    ctx.fill()
+
+    const headerGradient = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + 320)
+    headerGradient.addColorStop(0, '#0369a1')
+    headerGradient.addColorStop(1, '#1d4ed8')
+    ctx.fillStyle = headerGradient
+    ctx.beginPath()
+    ctx.roundRect(cardX, cardY, cardW, 320, 42)
+    ctx.fill()
+
+    ctx.fillStyle = '#dbeafe'
+    ctx.font = '700 34px Inter, sans-serif'
+    ctx.fillText('BUS TICKET', cardX + 56, cardY + 76)
+
+    ctx.fillStyle = '#ffffff'
+    ctx.font = '700 64px Inter, sans-serif'
+    ctx.fillText('Ticket Confirmed', cardX + 56, cardY + 162)
+
+    ctx.fillStyle = 'rgba(255,255,255,0.88)'
+    ctx.font = '500 28px Inter, sans-serif'
+    ctx.fillText(ticketSummary.route, cardX + 56, cardY + 224)
+    ctx.fillText(`Seat ${ticketSummary.seat}  •  Rs. ${ticketSummary.amount}`, cardX + 56, cardY + 270)
+
+    const drawLabelValue = (label, value, x, y, w) => {
+      ctx.fillStyle = '#64748b'
+      ctx.font = '600 24px Inter, sans-serif'
+      ctx.fillText(label.toUpperCase(), x, y)
+      ctx.fillStyle = '#0f172a'
+      ctx.font = '700 34px Inter, sans-serif'
+      const lines = String(value).match(new RegExp(`.{1,${Math.max(12, Math.floor(w / 18))}}`, 'g')) || ['--']
+      lines.slice(0, 2).forEach((line, index) => {
+        ctx.fillText(line, x, y + 48 + index * 38)
+      })
+    }
+
+    drawLabelValue('Passenger', ticketSummary.passenger, cardX + 56, cardY + 390, 380)
+    drawLabelValue('Ticket Number', ticketSummary.ticketNumber, cardX + 520, cardY + 390, 380)
+    drawLabelValue('Bus', ticketSummary.bus, cardX + 56, cardY + 560, 380)
+    drawLabelValue('Journey', ticketSummary.journey, cardX + 520, cardY + 560, 380)
+    drawLabelValue('Timing', ticketSummary.timing, cardX + 56, cardY + 730, 380)
+    drawLabelValue('Payment', ticketSummary.paymentMethod, cardX + 520, cardY + 730, 380)
+
+    ctx.fillStyle = '#f8fafc'
+    ctx.beginPath()
+    ctx.roundRect(cardX + 56, cardY + 900, 848, 250, 30)
+    ctx.fill()
+
+    ctx.fillStyle = '#0f172a'
+    ctx.font = '700 34px Inter, sans-serif'
+    ctx.fillText('Travel Status', cardX + 96, cardY + 970)
+    ctx.fillStyle = '#059669'
+    ctx.font = '700 56px Inter, sans-serif'
+    ctx.fillText('CONFIRMED', cardX + 96, cardY + 1055)
+    ctx.fillStyle = '#475569'
+    ctx.font = '500 26px Inter, sans-serif'
+    ctx.fillText(`Generated ${generatedDate.toLocaleDateString()} at ${generatedDate.toLocaleTimeString()}`, cardX + 96, cardY + 1110)
+
+    ctx.strokeStyle = '#cbd5e1'
+    ctx.lineWidth = 4
+    ctx.strokeRoundRect?.(cardX + 688, cardY + 930, 180, 180, 24)
+    if (!ctx.strokeRoundRect) {
+      ctx.beginPath()
+      ctx.roundRect(cardX + 688, cardY + 930, 180, 180, 24)
+      ctx.stroke()
+    }
+
+    try {
+      const qrImage = await loadImage(ticket.customQrUrl || ticket.paymentQr)
+      if (qrImage) {
+        ctx.drawImage(qrImage, cardX + 700, cardY + 942, 156, 156)
+      } else {
+        ctx.fillStyle = '#1d4ed8'
+        ctx.font = '700 24px Inter, sans-serif'
+        ctx.fillText('SCAN', cardX + 740, cardY + 1004)
+        ctx.font = '600 18px Inter, sans-serif'
+        ctx.fillText('AT BOARDING', cardX + 714, cardY + 1040)
+      }
+    } catch (error) {
+      ctx.fillStyle = '#1d4ed8'
+      ctx.font = '700 24px Inter, sans-serif'
+      ctx.fillText('SHOW ID', cardX + 726, cardY + 1004)
+      ctx.font = '600 18px Inter, sans-serif'
+      ctx.fillText(ticketSummary.seat, cardX + 753, cardY + 1040)
+    }
+
+    ctx.fillStyle = '#64748b'
+    ctx.font = '500 22px Inter, sans-serif'
+    ctx.fillText('Carry this ticket and valid ID proof during travel.', cardX + 56, cardY + 1245)
+    ctx.fillText('Thank you for choosing our bus service.', cardX + 56, cardY + 1295)
+
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        return
+      }
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `ticket-${ticketSummary.ticketNumber}.png`
+      link.click()
+      URL.revokeObjectURL(url)
+    }, 'image/png')
   }
 
   const shareTicket = async () => {
@@ -44,7 +187,120 @@ const TicketDisplay = ({ ticket }) => {
   }
 
   const printTicket = () => {
-    window.print()
+    const printWindow = window.open('', '_blank', 'width=900,height=1200')
+    if (!printWindow) {
+      return
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${ticketSummary.ticketNumber}</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 24px;
+              background: #f4f7fb;
+              font-family: Inter, Arial, sans-serif;
+              color: #0f172a;
+            }
+            .ticket {
+              max-width: 760px;
+              margin: 0 auto;
+              background: white;
+              border-radius: 28px;
+              overflow: hidden;
+              box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+            }
+            .hero {
+              padding: 28px 32px;
+              color: white;
+              background: linear-gradient(135deg, #0369a1, #1d4ed8);
+            }
+            .hero h1 {
+              margin: 10px 0 8px;
+              font-size: 34px;
+            }
+            .hero p, .muted {
+              color: rgba(255,255,255,0.88);
+            }
+            .content {
+              padding: 28px 32px 32px;
+            }
+            .grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 16px;
+            }
+            .card {
+              background: #f8fafc;
+              border-radius: 18px;
+              padding: 16px;
+            }
+            .label {
+              color: #64748b;
+              font-size: 12px;
+              font-weight: 700;
+              letter-spacing: 0.14em;
+              text-transform: uppercase;
+            }
+            .value {
+              margin-top: 10px;
+              font-size: 20px;
+              font-weight: 700;
+              color: #0f172a;
+            }
+            .footer {
+              margin-top: 20px;
+              padding: 18px 20px;
+              border-radius: 18px;
+              background: #ecfeff;
+              color: #155e75;
+              font-size: 14px;
+            }
+            @media print {
+              body {
+                padding: 0;
+                background: white;
+              }
+              .ticket {
+                box-shadow: none;
+                max-width: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="ticket">
+            <div class="hero">
+              <div class="label muted">Bus Ticket</div>
+              <h1>Ticket Confirmed</h1>
+              <p>${ticketSummary.route}</p>
+              <p>Seat ${ticketSummary.seat} • Rs. ${ticketSummary.amount}</p>
+            </div>
+            <div class="content">
+              <div class="grid">
+                <div class="card"><div class="label">Passenger</div><div class="value">${ticketSummary.passenger}</div></div>
+                <div class="card"><div class="label">Ticket Number</div><div class="value">${ticketSummary.ticketNumber}</div></div>
+                <div class="card"><div class="label">Bus</div><div class="value">${ticketSummary.bus}</div></div>
+                <div class="card"><div class="label">Journey</div><div class="value">${ticketSummary.journey}</div></div>
+                <div class="card"><div class="label">Timing</div><div class="value">${ticketSummary.timing}</div></div>
+                <div class="card"><div class="label">Payment</div><div class="value">${ticketSummary.paymentMethod}</div></div>
+              </div>
+              <div class="footer">
+                Carry this ticket and valid ID proof during travel. Generated on ${generatedDate.toLocaleDateString()} at ${generatedDate.toLocaleTimeString()}.
+              </div>
+            </div>
+          </div>
+          <script>
+            window.onload = function () {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
   }
 
   const confirmPayment = async () => {
