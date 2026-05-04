@@ -83,8 +83,17 @@ class TicketBookingService:
             
             # 4. Update seat status
             seat = db.query(models.Seat).filter(models.Seat.seat_id == seat_id).first()
-            if seat:
-                seat.status = "Booked"
+            print(f"DEBUG: seat_id={seat_id}, seat={seat}, seat.status={seat.status if seat else 'None'}")
+            
+            if not seat:
+                db.rollback()
+                return {
+                    "success": False,
+                    "message": "Invalid Seat ID. Kripya sahi seat chunein."
+                }
+            
+            # Force status to Booked regardless of current status
+            seat.status = "Booked"
             
             # 5. Create payment (check if already exists)
             existing_payment = db.query(models.Payment).filter(models.Payment.ticket_id == ticket.ticket_id).first()

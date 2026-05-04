@@ -9,12 +9,13 @@ import {
   Search,
   Users
 } from 'lucide-react'
-import SeatGrid from '../components/SeatGrid'
+import SeatGridDirectBooking from '../components/SeatGridDirectBooking'
 import PaymentSelector from '../components/PaymentSelector'
 import TicketDisplay from '../components/TicketDisplay'
 import { paymentAPI, routeAPI, ticketAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import { MAHARASHTRA_CITIES } from '../data/maharashtraCities'
+import { RouteSkeleton, SeatSkeleton, FormInputSkeleton } from '../components/SkeletonLoader'
 
 const INITIAL_PASSENGER = {
   passenger_name: '',
@@ -36,6 +37,7 @@ const BookTicket = () => {
   const [passenger, setPassenger] = useState(INITIAL_PASSENGER)
   const [sourceFilter, setSourceFilter] = useState('')
   const [destinationFilter, setDestinationFilter] = useState('')
+  const [journeyDateFilter, setJourneyDateFilter] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [upiId, setUpiId] = useState('')
   const [qrCode, setQrCode] = useState('')
@@ -59,9 +61,10 @@ const BookTicket = () => {
         : true
       const matchesSource = sourceFilter ? route.source_city === sourceFilter : true
       const matchesDestination = destinationFilter ? route.destination_city === destinationFilter : true
-      return matchesSearch && matchesSource && matchesDestination
+      const matchesDate = journeyDateFilter ? route.travel_date === journeyDateFilter : true
+      return matchesSearch && matchesSource && matchesDestination && matchesDate
     })
-  }, [destinationFilter, routes, searchTerm, sourceFilter])
+  }, [destinationFilter, routes, searchTerm, sourceFilter, journeyDateFilter])
 
   const cityOptions = useMemo(() => {
     return Array.from(
@@ -81,7 +84,17 @@ const BookTicket = () => {
       setRoutes(Array.isArray(response.data) ? response.data : [])
     } catch (error) {
       console.error('Error fetching routes:', error)
-      toast.error('Routes load nahi ho paayi. Backend check karein.')
+      toast.error('⚠️ Routes load करने में issue आ रहा है!\nकृपया backend check करें।\n\nIssue loading routes!\nPlease check backend.', {
+        icon: '⚠️',
+        style: {
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+          color: '#fff',
+          padding: '16px',
+          fontSize: '14px',
+        },
+        duration: 5000,
+      })
     } finally {
       setLoadingRoutes(false)
     }
@@ -103,7 +116,17 @@ const BookTicket = () => {
       setSeats(normalizedSeats)
     } catch (error) {
       console.error('Error fetching seats:', error)
-      toast.error('Seats load nahi ho paayi.')
+      toast.error('💺 Seats load नहीं हो पाई!\nकृपया फिर से try करें।\n\nFailed to load seats!\nPlease try again.', {
+        icon: '❌',
+        style: {
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          color: '#fff',
+          padding: '16px',
+          fontSize: '14px',
+        },
+        duration: 4000,
+      })
     } finally {
       setLoadingSeats(false)
     }
@@ -137,12 +160,28 @@ const BookTicket = () => {
 
   const handleGenerateQR = async () => {
     if (!selectedRoute) {
-      toast.error('Pehle route select karein.')
+      toast.error('🎫 कृपया पहले route select करें!\n\nPlease select a route first!', {
+        icon: '⚠️',
+        style: {
+          borderRadius: '10px',
+          background: '#f59e0b',
+          color: '#fff',
+        },
+        duration: 3000,
+      })
       return
     }
 
     if (selectedMethod === 'upi' && !upiId.trim()) {
-      toast.error('UPI ID enter karein.')
+      toast.error('💳 कृपया UPI ID enter करें!\n\nPlease enter UPI ID!', {
+        icon: '⚠️',
+        style: {
+          borderRadius: '10px',
+          background: '#f59e0b',
+          color: '#fff',
+        },
+        duration: 3000,
+      })
       return
     }
 
@@ -165,19 +204,29 @@ const BookTicket = () => {
       setQrCode('')
       setUpiUrl('')
       setPaymentReference('')
-      toast.error('Payment QR generate nahi ho paaya.')
+      toast.error('❌ Payment QR generate नहीं हो पाया!\nकृपया फिर से try करें।\n\nFailed to generate payment QR!\nPlease try again.', {
+        icon: '❌',
+        style: {
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          color: '#fff',
+          padding: '16px',
+          fontSize: '14px',
+        },
+        duration: 5000,
+      })
     } finally {
       setCreatingQR(false)
     }
   }
 
   const validateBooking = () => {
-    if (!selectedRoute) return 'Route select karein.'
-    if (!selectedSeat) return 'Seat select karein.'
-    if (!passenger.passenger_name.trim()) return 'Passenger name enter karein.'
-    if (!/^\d{10}$/.test(passenger.contact_number)) return 'Valid 10 digit mobile number enter karein.'
-    if (!passenger.id_number.trim()) return 'ID number enter karein.'
-    if (selectedMethod === 'upi' && paymentStatus !== 'success') return 'UPI payment verify karein.'
+    if (!selectedRoute) return '🎫 Kripya pehle route select karein.'
+    if (!selectedSeat) return '💺 Kripya seat select karein.'
+    if (!passenger.passenger_name.trim()) return '👤 Passenger name enter karein.'
+    if (!/^\d{10}$/.test(passenger.contact_number)) return '📱 Valid 10 digit mobile number enter karein.'
+    if (!passenger.id_number.trim()) return '🆔 ID number enter karein.'
+    // Remove UPI payment verification requirement - allow all payment methods
     return ''
   }
 
@@ -232,11 +281,31 @@ const BookTicket = () => {
       }
 
       setBookedTicket(ticketData)
-      toast.success('Ticket successfully book ho gaya.')
+      toast.success('🎉 बधाई हो! आपका ticket successfully book हो गया है!\nCongratulations! Your ticket has been booked successfully!', {
+        icon: '🎉',
+        style: {
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          color: '#fff',
+          padding: '16px',
+          fontSize: '14px',
+        },
+        duration: 5000,
+      })
       fetchSeats(selectedRoute)
     } catch (error) {
       console.error('Error booking ticket:', error)
-      toast.error('Ticket booking failed.')
+      toast.error('❌ Ticket booking failed!\nकृपया फिर से try करें।\n\nBooking failed!\nPlease try again.', {
+        icon: '❌',
+        style: {
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          color: '#fff',
+          padding: '16px',
+          fontSize: '14px',
+        },
+        duration: 5000,
+      })
     } finally {
       setSubmitting(false)
     }
@@ -300,18 +369,21 @@ const BookTicket = () => {
               {destinationFilter && (
                 <span className="rounded-full bg-emerald-600 px-3 py-1 text-white">{destinationFilter}</span>
               )}
+              {journeyDateFilter && (
+                <span className="rounded-full bg-indigo-600 px-3 py-1 text-white">{journeyDateFilter}</span>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 p-4 sm:gap-4 sm:p-5 md:grid-cols-3 lg:p-6">
-          <div className="relative md:col-span-3">
+        <div className="grid grid-cols-1 gap-3 p-4 sm:gap-4 sm:p-5 md:grid-cols-4 lg:p-6">
+          <div className="relative md:col-span-4 lg:col-span-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Route, source ya destination search karein"
+              placeholder="Route search"
               className="input h-12 rounded-2xl border-slate-200 bg-slate-50 pl-10 shadow-inner shadow-slate-100"
             />
           </div>
@@ -337,14 +409,24 @@ const BookTicket = () => {
               <option key={`dst-${city}`} value={city}>{city}</option>
             ))}
           </select>
+          
+          <input
+            type="date"
+            value={journeyDateFilter}
+            onChange={(e) => setJourneyDateFilter(e.target.value)}
+            className="input h-12 rounded-2xl border-slate-200 bg-white text-slate-700"
+            title="Select Journey Date"
+            min={new Date().toISOString().split('T')[0]} // Prevent past dates
+          />
 
           <button
             onClick={() => {
               setSearchTerm('')
               setSourceFilter('')
               setDestinationFilter('')
+              setJourneyDateFilter('')
             }}
-            className="h-12 rounded-2xl bg-slate-100 px-4 font-medium text-slate-700 transition hover:bg-slate-200"
+            className="h-12 rounded-2xl bg-slate-100 px-4 font-medium text-slate-700 transition hover:bg-slate-200 md:col-span-4"
           >
             Clear Filters
           </button>
@@ -373,8 +455,10 @@ const BookTicket = () => {
           )}
 
           {loadingRoutes ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="spinner w-8 h-8"></div>
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <RouteSkeleton key={index} />
+              ))}
             </div>
           ) : (
             <div className="space-y-3 sm:space-y-4 lg:max-h-[38rem] lg:overflow-y-auto lg:pr-1">
@@ -453,17 +537,16 @@ const BookTicket = () => {
                 </span>
               )}
             </div>
-            {selectedRoute ? (
-              <SeatGrid
+            {loadingSeats ? (
+              <SeatSkeleton />
+            ) : (
+              <SeatGridDirectBooking
                 seats={seats}
                 selectedSeat={selectedSeat}
                 onSeatSelect={setSelectedSeat}
                 loading={loadingSeats}
+                routeId={selectedRoute?.route_id}
               />
-            ) : (
-              <div className="text-center py-12 text-gray-500">
-                Pahle route select karein.
-              </div>
             )}
           </div>
 
@@ -556,31 +639,64 @@ const BookTicket = () => {
           </div>
 
           <div className="card border border-white/70 bg-white/92 p-4 shadow-lg shadow-slate-200/70 sm:p-5 lg:p-6">
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-sm text-gray-500">Route</p>
-                <p className="font-medium text-gray-900">{selectedRoute ? `${selectedRoute.source_city} - ${selectedRoute.destination_city}` : '-'}</p>
+            <div className="mb-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Fare Summary</h2>
+                <div className="flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700 font-semibold">
+                  <IndianRupee className="w-4 h-4" />
+                  <span>Rs. {fareAmount || 0}</span>
+                </div>
               </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-sm text-gray-500">Seat</p>
-                <p className="font-medium text-gray-900">{selectedSeat ? selectedSeat.number : '-'}</p>
+            </div>
+
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 p-4 border border-slate-200">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Route</p>
+                <p className="mt-1 font-semibold text-slate-900">{selectedRoute ? `${selectedRoute.source_city} → ${selectedRoute.destination_city}` : 'Not Selected'}</p>
+                {selectedRoute && (
+                  <p className="text-xs text-slate-500 mt-1">{selectedRoute.route_name}</p>
+                )}
               </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-sm text-gray-500">Passengers</p>
-                <p className="font-medium text-gray-900 flex items-center gap-2"><Users className="w-4 h-4" /> 1</p>
+              <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 p-4 border border-cyan-200">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Journey Date & Time</p>
+                <p className="mt-1 font-semibold text-slate-900">{selectedRoute ? `${selectedRoute.travel_date}` : 'Not Selected'}</p>
+                {selectedRoute && (
+                  <p className="text-xs text-slate-500 mt-1">{selectedRoute.departure_time} - {selectedRoute.arrival_time}</p>
+                )}
+              </div>
+              <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 p-4 border border-amber-200">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Seat & Passenger</p>
+                <p className="mt-1 font-semibold text-slate-900">{selectedSeat ? `Seat ${selectedSeat.number}` : 'Not Selected'}</p>
+                <p className="text-xs text-slate-500 mt-1">{passenger.passenger_name || 'Passenger Name'}</p>
+              </div>
+              <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 p-4 border border-emerald-200">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Payment Details</p>
+                <p className="mt-1 font-bold text-emerald-700">Rs. {fareAmount}</p>
+                <p className="text-xs text-slate-500 mt-1 capitalize">{selectedMethod} Payment</p>
               </div>
             </div>
 
             <div className="mb-4 rounded-[24px] border border-slate-200 bg-gradient-to-r from-slate-50 to-cyan-50 p-4">
               <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white flex-shrink-0">
                   <Receipt className="h-5 w-5" />
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">Final booking check</p>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-900">Final Booking Confirmation</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    Route, seat, passenger details aur payment status confirm karke booking complete karein.
+                    कृपया अपनी booking details ध्यान से check करें:
+                    Route, seat, passenger details और payment status confirm करके ही booking complete करें।
+                    एक बार booking complete हो जाने के बाद changes नहीं किए जा सकते।
                   </p>
+                  
+                  {selectedRoute && selectedSeat && passenger.passenger_name && (
+                    <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3">
+                      <p className="text-xs font-medium text-green-800">
+                        ✅ Ready to book: {selectedRoute.source_city} → {selectedRoute.destination_city}, 
+                        Seat {selectedSeat.number}, {passenger.passenger_name}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -588,16 +704,23 @@ const BookTicket = () => {
             {selectedMethod === 'upi' && paymentStatus === 'success' && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 mb-4 text-green-800">
                 <CheckCircle className="w-4 h-4" />
-                <span>UPI payment verified. Ab booking complete kar sakte hain.</span>
+                <span>✅ UPI payment verified. अब booking complete कर सकते हैं।</span>
               </div>
             )}
 
             <button
               onClick={handleBookTicket}
-              disabled={submitting}
-              className="btn-primary"
+              disabled={submitting || !selectedRoute || !selectedSeat || !passenger.passenger_name.trim()}
+              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? 'Booking...' : 'Complete Booking'}
+              {submitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Booking in Progress...
+                </span>
+              ) : (
+                '🎫 Complete Booking - बुकिंग पूरी करें'
+              )}
             </button>
           </div>
         </div>

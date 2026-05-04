@@ -90,6 +90,7 @@ export const ticketAPI = {
     payment_request: paymentData
   }),
   getHistory: (ticketId) => api.get(`/payment/history/${ticketId}`),
+  cancel: (ticketId) => api.post(`/tickets/${ticketId}/cancel`),
 }
 
 export const paymentAPI = {
@@ -106,6 +107,7 @@ export const paymentAPI = {
 export const reportAPI = {
   getPaymentSummary: () => api.get('/payments/summary'),
   getRevenueByRoute: () => api.get('/revenue/by-route'),
+  getDashboardStats: () => api.get('/dashboard/stats'),
 }
 
 export const systemAPI = {

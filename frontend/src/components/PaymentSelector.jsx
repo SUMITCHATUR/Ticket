@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Banknote, Check, CreditCard, Loader2, Smartphone } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Banknote, Check, CreditCard, Loader2, Smartphone, AlertCircle, X, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import QRCodeDisplay from './QRCodeDisplay'
 import { paymentAPI } from '../services/api'
@@ -23,12 +23,110 @@ const PaymentSelector = ({
   const [paymentId, setPaymentId] = useState(null)
   const [expiryTime, setExpiryTime] = useState(null)
   const [checkingPayment, setCheckingPayment] = useState(false)
+  const [autoCheckEnabled, setAutoCheckEnabled] = useState(false)
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
 
+  // Define derived variables before useEffect hooks
   const qrCode = externalQrCode || internalQrCode
   const upiUrl = externalUpiUrl || internalUpiUrl
   const isLoading = externalLoading || internalLoading
   const activePaymentId = externalPaymentId || paymentId
+
+  // Define all functions before useEffect hooks
+  const checkPaymentStatus = async (silent = false) => {
+    if (!silent) {
+      setCheckingPayment(true)
+    }
+    
+    try {
+      if (!activePaymentId) {
+        if (!silent) {
+          toast.error('Payment reference missing hai. QR dubara generate karein.\nPayment reference missing. Please regenerate QR.')
+        }
+        return
+      }
+
+      const response = await paymentAPI.verify(activePaymentId)
+      const status = response.data?.status?.toLowerCase()
+      
+      if (status === 'verified' || status === 'success' || response.data?.success) {
+        onPaymentStatusChange?.('success')
+        if (!silent) {
+          toast.success('✅ Payment सफलतापूर्वक verify हो गया!\nPayment verified successfully!', {
+            icon: '✅',
+            style: {
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: '#fff',
+              padding: '16px',
+              fontSize: '14px',
+            },
+            duration: 4000,
+          })
+        }
+      } else if (status === 'failed' || status === 'cancelled') {
+        onPaymentStatusChange?.('failed')
+        if (!silent) {
+          toast.error('❌ Payment failed या cancelled हो गया।\nPayment failed or cancelled.', {
+            icon: '❌',
+            style: {
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              color: '#fff',
+              padding: '16px',
+              fontSize: '14px',
+            },
+            duration: 5000,
+          })
+        }
+      } else {
+        // Still pending
+        onPaymentStatusChange?.('pending')
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error)
+      onPaymentStatusChange?.('failed')
+      if (!silent) {
+        toast.error('❌ Payment status check में error आई।\nError checking payment status.', {
+          icon: '⚠️',
+          style: {
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            color: '#fff',
+            padding: '16px',
+            fontSize: '14px',
+          },
+          duration: 5000,
+        })
+      }
+    } finally {
+      if (!silent) {
+        setCheckingPayment(false)
+      }
+    }
+  }
+
+  // Auto-check payment status when QR is generated
+  useEffect(() => {
+    if (qrCode && activePaymentId && (paymentStatus === 'pending' || !paymentStatus)) {
+      setAutoCheckEnabled(true)
+      const interval = setInterval(() => {
+        checkPaymentStatus(true) // Silent check
+      }, 5000) // Check every 5 seconds
+      
+      return () => {
+        clearInterval(interval)
+        setAutoCheckEnabled(false)
+      }
+    }
+  }, [qrCode, activePaymentId, paymentStatus])
+
+  // Stop auto-check when payment is verified or failed
+  useEffect(() => {
+    if (paymentStatus === 'success' || paymentStatus === 'failed') {
+      setAutoCheckEnabled(false)
+    }
+  }, [paymentStatus])
 
   const paymentMethods = [
     {
@@ -116,27 +214,36 @@ const PaymentSelector = ({
     }
   }
 
-  const checkPaymentStatus = async () => {
-    setCheckingPayment(true)
-    try {
-      if (!activePaymentId) {
-        toast.error('Payment reference missing hai. QR dubara generate karein.')
-        return
-      }
-
-      const response = await paymentAPI.verify(activePaymentId)
-      if (response.data?.success) {
-        onPaymentStatusChange?.('success')
-        toast.success('Payment verified successfully.')
-      } else {
-        onPaymentStatusChange?.('failed')
-        toast.error('Payment verify nahi ho paaya.')
-      }
-    } catch (error) {
-      onPaymentStatusChange?.('failed')
-      toast.error('Error checking payment status. Please try again.')
-    } finally {
-      setCheckingPayment(false)
+  const getPaymentStatusDisplay = () => {
+    switch (paymentStatus) {
+      case 'success':
+        return {
+          icon: <Check className="h-5 w-5 text-green-600" />,
+          title: '✅ Payment Verified',
+          subtitle: 'भुगतान सफलतापूर्वक verify हो गया',
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200',
+          textColor: 'text-green-800'
+        }
+      case 'failed':
+        return {
+          icon: <X className="h-5 w-5 text-red-600" />,
+          title: '❌ Payment Failed',
+          subtitle: 'भुगतान असफल रहा',
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-200',
+          textColor: 'text-red-800'
+        }
+      case 'pending':
+      default:
+        return {
+          icon: <Clock className="h-5 w-5 text-yellow-600" />,
+          title: '⏳ Payment Pending',
+          subtitle: autoCheckEnabled ? 'भुगतान status check हो रहा है...' : 'भुगतान प्रतीक्षारत',
+          bgColor: 'bg-yellow-50',
+          borderColor: 'border-yellow-200',
+          textColor: 'text-yellow-800'
+        }
     }
   }
 
@@ -232,47 +339,85 @@ const PaymentSelector = ({
               />
 
               <div className="mt-4">
-                {paymentStatus === 'success' ? (
-                  <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                    <div className="flex items-center gap-2">
-                      <Check className="h-5 w-5 text-green-600" />
-                      <p className="text-sm font-medium text-green-800">Payment verified successfully.</p>
-                    </div>
-                    <p className="mt-1 text-sm text-green-700">You can now complete your booking.</p>
-                    <div className="mt-3 rounded-lg bg-green-100 p-3">
-                      <p className="text-sm font-medium text-green-800">Ready for Booking Completion</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                      <p className="text-sm text-yellow-800">
-                        <strong>Payment Status:</strong> Waiting for payment completion
-                      </p>
-                      <p className="mt-1 text-sm text-yellow-700">
-                        Scan the QR code above and complete the payment using your UPI app.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={checkPaymentStatus}
-                      disabled={checkingPayment}
-                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 py-3 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {checkingPayment ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                          Checking Payment Status...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="h-5 w-5" />
-                          I&apos;ve Paid - Verify Payment
-                        </>
+                {(() => {
+                  const statusDisplay = getPaymentStatusDisplay()
+                  return (
+                    <div className={`rounded-lg border ${statusDisplay.borderColor} ${statusDisplay.bgColor} p-4`}>
+                      <div className="flex items-center gap-3">
+                        {statusDisplay.icon}
+                        <div className="flex-1">
+                          <p className={`font-medium ${statusDisplay.textColor}`}>{statusDisplay.title}</p>
+                          <p className={`text-sm ${statusDisplay.textColor} opacity-80`}>{statusDisplay.subtitle}</p>
+                          {activePaymentId && (
+                            <p className="text-xs opacity-60 mt-1">Payment ID: {activePaymentId}</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {paymentStatus === 'success' && (
+                        <div className="mt-3 rounded-lg bg-green-100 p-3">
+                          <p className="text-sm font-medium text-green-800">
+                            ✅ Ready for Booking Completion
+                          </p>
+                          <p className="text-xs text-green-700 mt-1">
+                            अब आप booking complete कर सकते हैं।
+                          </p>
+                        </div>
                       )}
-                    </button>
-                  </div>
-                )}
+                      
+                      {paymentStatus === 'failed' && (
+                        <div className="mt-3">
+                          <button
+                            onClick={() => {
+                              setInternalQrCode(null)
+                              setInternalUpiUrl(null)
+                              setPaymentId(null)
+                              setExpiryTime(null)
+                              onPaymentStatusChange?.('pending')
+                            }}
+                            className="w-full rounded-lg border border-red-300 bg-red-100 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-200"
+                          >
+                            🔄 Try Payment Again
+                          </button>
+                        </div>
+                      )}
+                      
+                      {(paymentStatus === 'pending' || !paymentStatus) && (
+                        <div className="mt-3 space-y-3">
+                          <div className="rounded-lg bg-yellow-100 p-3">
+                            <p className="text-sm font-medium text-yellow-800">
+                              {autoCheckEnabled ? '⏳ Auto-checking payment status...' : '📱 Scan QR & Complete Payment'}
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              {autoCheckEnabled 
+                                ? 'हम automatically payment status check कर रहे हैं।'
+                                : 'QR code scan करके payment complete करें।'
+                              }
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => checkPaymentStatus(false)}
+                            disabled={checkingPayment}
+                            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 py-3 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {checkingPayment ? (
+                              <>
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                                Checking Status...
+                              </>
+                            ) : (
+                              <>
+                                <Check className="h-5 w-5" />
+                                🔄 Check Payment Status
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             </>
           )}

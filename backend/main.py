@@ -489,8 +489,16 @@ def create_route(route: RouteBase, db: Session = Depends(get_db)):
 # Tickets endpoints
 @app.get("/tickets/")
 @app.get("/api/tickets/")
-def get_tickets(db: Session = Depends(get_db)):
-    tickets = db.query(models.Ticket).all()
+def get_tickets(search: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(models.Ticket)
+    
+    if search:
+        query = query.join(models.Passenger).filter(
+            (models.Ticket.ticket_number.ilike(f"%{search}%")) |
+            (models.Passenger.contact_number.ilike(f"%{search}%"))
+        )
+        
+    tickets = query.all()
     result = []
     for ticket in tickets:
         # Get passenger name
@@ -540,6 +548,35 @@ def create_ticket(ticket: TicketBase, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_ticket)
     return db_ticket
+
+@app.post("/tickets/{ticket_id}/cancel")
+@app.post("/api/tickets/{ticket_id}/cancel")
+def cancel_ticket(ticket_id: int, db: Session = Depends(get_db)):
+    ticket = db.query(models.Ticket).filter(models.Ticket.ticket_id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    if ticket.journey_status == "Cancelled":
+        return {"success": False, "message": "Ticket already cancelled"}
+    
+    ticket.journey_status = "Cancelled"
+    
+    # free the seat
+    seat = db.query(models.Seat).filter(models.Seat.seat_id == ticket.seat_id).first()
+    if seat:
+        seat.status = "Available"
+        
+    # increase available capacity
+    bus_route = db.query(models.BusRoute).filter(models.BusRoute.bus_route_id == ticket.bus_route_id).first()
+    if bus_route:
+        bus_route.available_capacity += 1
+        
+    if seat:
+        bus = db.query(models.Bus).filter(models.Bus.bus_id == seat.bus_id).first()
+        if bus:
+            bus.available_seats += 1
+            
+    db.commit()
+    return {"success": True, "message": "Ticket cancelled successfully"}
 
 # Get available seats for a route
 @app.get("/routes/{route_id}/available-seats")
@@ -620,6 +657,24 @@ def get_revenue_summary(db: Session = Depends(get_db)):
         }
         for row in revenue_data
     ]
+
+# Get dashboard stats
+@app.get("/dashboard/stats")
+@app.get("/api/dashboard/stats")
+def get_dashboard_stats(db: Session = Depends(get_db)):
+    query = text("""
+    SELECT 
+      (SELECT COUNT(*) FROM tickets WHERE journey_status != 'Cancelled') as total_tickets,
+      (SELECT COALESCE(SUM(payment_amount), 0) FROM payments WHERE payment_status = 'Success') as total_revenue,
+      (SELECT COUNT(*) FROM buses WHERE status = 'Active') as active_buses
+    """)
+    result = db.execute(query).fetchone()
+    
+    return {
+        "tickets": result[0],
+        "revenue": f"₹{result[1]:,.2f}",
+        "activeBuses": result[2]
+    }
 
 @app.post("/auth/login")
 @app.post("/api/auth/login")
