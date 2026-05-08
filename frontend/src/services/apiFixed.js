@@ -1,8 +1,8 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-// Fixed API configuration for localhost
-const baseURL = 'http://localhost:8000/api'
+// Fixed API configuration for dynamic access (supports mobile)
+const baseURL = '/api'
 
 const api = axios.create({
   baseURL,

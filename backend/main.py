@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -42,24 +42,73 @@ def initialize_app():
     except Exception as exc:
         logger.error(f"Startup initialization failed: {exc}")
 
-frontend_origin = os.getenv("FRONTEND_URL")
-allowed_origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://ticketsbus.netlify.app",
-]
-if frontend_origin:
-    allowed_origins.append(frontend_origin)
-
-# CORS middleware
+# Robust CORS configuration
+# Using allow_origin_regex to support all Vercel and Netlify subdomains
+# allow_credentials=True is MANDATORY for many mobile browsers to handle tokens correctly
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_origin_regex=r"https://.*\.netlify\.app",
+    allow_origins=[
+        "https://ticket-frontend-seven.vercel.app",
+        "https://ti-cket.vercel.app",
+        "https://ticketsbus.netlify.app",
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],
+    allow_origin_regex="https://.*\.vercel\.app|https://.*\.netlify\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+# Middleware to handle proxy headers (critical for Render/Vercel/Netlify)
+@app.middleware("http")
+async def handle_proxy_headers(request: Request, call_next):
+    # Detect if request is over HTTPS from proxy headers
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
+    forwarded_ssl = request.headers.get("x-forwarded-ssl", "").lower()
+    
+    # If proxy says https, OR if we are on a production-like host, force FastAPI to treat it as https
+    # This prevents "Mixed Content" errors by ensuring all generated URLs use https
+    is_https = forwarded_proto == "https" or forwarded_ssl == "on"
+    
+    # Force HTTPS for any non-localhost request to prevent Mixed Content
+    host = request.headers.get("host", "")
+    if is_https or ("localhost" not in host and "127.0.0.1" not in host):
+        request.scope["scheme"] = "https"
+    
+    # Handle forwarded host to maintain correct domain in links
+    forwarded_host = request.headers.get("x-forwarded-host")
+    if forwarded_host:
+        host_parts = forwarded_host.split(':')
+        server_host = host_parts[0]
+        server_port = int(host_parts[1]) if len(host_parts) > 1 else (443 if request.scope["scheme"] == "https" else 80)
+        request.scope["server"] = (server_host, server_port)
+        
+    response = await call_next(request)
+    
+    # Security Headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # Prevent caching of auth and API requests on mobile
+    if "auth" in request.url.path or "api" in request.url.path:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        
+    return response
+
+# Debug endpoint to verify environment
+@app.get("/api/debug/info")
+async def debug_info(request: Request):
+    return {
+        "scheme": request.scope.get("scheme"),
+        "headers": {k: v for k, v in request.headers.items() if k.lower() not in ["authorization", "cookie"]},
+        "server": request.scope.get("server"),
+        "client": request.scope.get("client"),
+    }
 
 # Pydantic models
 class ConductorBase(BaseModel):
@@ -619,62 +668,94 @@ def get_available_seats(route_id: int, db: Session = Depends(get_db)):
         for seat in seats
     ]
 
-# Get revenue summary
+# Get payment summary (breakdown by method)
+@app.get("/payments/summary")
+@app.get("/api/payments/summary")
+def get_payment_summary(db: Session = Depends(get_db)):
+    try:
+        summary = PaymentService.get_payment_summary(db)
+        return [
+            {
+                "payment_method": row[0],
+                "total_transactions": row[1],
+                "total_amount": float(row[2]) if row[2] else 0,
+                "average_amount": float(row[3]) if row[3] else 0,
+                "successful": row[4],
+                "failed": row[5],
+                "pending": row[6]
+            }
+            for row in summary
+        ]
+    except Exception as e:
+        logger.error(f"Payment summary error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get payment summary")
+
+# Get revenue summary (breakdown by route)
+@app.get("/revenue/by-route")
+@app.get("/api/revenue/by-route")
 @app.get("/revenue-summary")
 @app.get("/api/revenue-summary")
-@app.get("/api/payments/summary")
-def get_revenue_summary(db: Session = Depends(get_db)):
-    query = text("""
-    SELECT 
-        r.route_id,
-        r.route_name,
-        r.source_city,
-        r.destination_city,
-        COUNT(t.ticket_id) AS total_tickets,
-        SUM(pay.payment_amount) AS total_revenue,
-        AVG(pay.payment_amount) AS average_fare
-    FROM routes r
-    JOIN bus_routes br ON r.route_id = br.route_id
-    LEFT JOIN tickets t ON br.bus_route_id = t.bus_route_id
-    LEFT JOIN payments pay ON t.ticket_id = pay.ticket_id
-    WHERE pay.payment_status = 'Success'
-    GROUP BY r.route_id, r.route_name, r.source_city, r.destination_city
-    ORDER BY total_revenue DESC
-    """)
-    
-    result = db.execute(query)
-    revenue_data = result.fetchall()
-    
-    return [
-        {
-            "route_id": row[0],
-            "route_name": row[1],
-            "source_city": row[2],
-            "destination_city": row[3],
-            "total_tickets": row[4],
-            "total_revenue": float(row[5]),
-            "average_fare": float(row[6]) if row[6] else 0
-        }
-        for row in revenue_data
-    ]
+def get_revenue_by_route(db: Session = Depends(get_db)):
+    try:
+        summary = PaymentService.get_revenue_by_route(db)
+        return [
+            {
+                "route_id": row[0],
+                "route_name": row[1],
+                "source_city": row[2],
+                "destination_city": row[3],
+                "total_tickets": row[4],
+                "total_revenue": float(row[5]) if row[5] else 0,
+                "average_fare": float(row[6]) if row[6] else 0
+            }
+            for row in summary
+        ]
+    except Exception as e:
+        logger.error(f"Revenue summary error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get revenue summary")
 
 # Get dashboard stats
 @app.get("/dashboard/stats")
 @app.get("/api/dashboard/stats")
 def get_dashboard_stats(db: Session = Depends(get_db)):
-    query = text("""
-    SELECT 
-      (SELECT COUNT(*) FROM tickets WHERE journey_status != 'Cancelled') as total_tickets,
-      (SELECT COALESCE(SUM(payment_amount), 0) FROM payments WHERE payment_status = 'Success') as total_revenue,
-      (SELECT COUNT(*) FROM buses WHERE status = 'Active') as active_buses
-    """)
-    result = db.execute(query).fetchone()
-    
-    return {
-        "tickets": result[0],
-        "revenue": f"₹{result[1]:,.2f}",
-        "activeBuses": result[2]
-    }
+    try:
+        query = text("""
+        SELECT 
+          (SELECT COUNT(*) FROM tickets WHERE journey_status != 'Cancelled') as total_tickets,
+          (SELECT COALESCE(SUM(payment_amount), 0) FROM payments WHERE payment_status = 'Success') as total_revenue,
+          (SELECT COUNT(*) FROM routes WHERE status = 'Scheduled') as active_routes
+        """)
+        stats_row = db.execute(query).fetchone()
+        
+        # Get recent tickets (last 5)
+        recent_tickets_data = get_tickets(db=db)[:5]
+        
+        # Map to frontend format
+        recent_tickets = [
+            {
+                "id": t["ticket_number"],
+                "passenger": t["passenger_name"],
+                "route": t["route"],
+                "seat": t["seat_number"],
+                "amount": t["amount"],
+                "time": t["booking_time"],
+                "status": t["status"]
+            }
+            for t in recent_tickets_data
+        ]
+        
+        return {
+            "success": True,
+            "stats": {
+                "todayTickets": stats_row[0],
+                "totalRevenue": float(stats_row[1]),
+                "activeRoutes": stats_row[2]
+            },
+            "recentTickets": recent_tickets
+        }
+    except Exception as e:
+        logger.error(f"Dashboard stats error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get dashboard stats")
 
 @app.post("/auth/login")
 @app.post("/api/auth/login")

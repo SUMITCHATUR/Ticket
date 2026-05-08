@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import api, { authAPI } from '../services/apiFixed'
+import api, { authAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 const AuthContext = createContext()
@@ -83,7 +83,10 @@ export const AuthProvider = ({ children }) => {
       } else if (error.code === 'NETWORK_ERROR') {
         toast.error('❌ Network error! Please check connection.\nनेटवर्क त्रुटि! कनेक्शन जांचें।')
       } else {
-        toast.error('❌ Login failed! Please try again.\nलॉगिन विफल! फिर से कोशिश करें।')
+        const errorMsg = error.message || 'Unknown error';
+        const errorStatus = error.response?.status || 'No status';
+        console.error('Login detailed error:', { message: errorMsg, status: errorStatus, data: error.response?.data });
+        toast.error(`❌ Login failed: ${errorMsg} (${errorStatus})\nकृपया फिर से कोशिश करें।`);
       }
       return false
     }

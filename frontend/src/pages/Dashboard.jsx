@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Activity, ArrowUpRight, Clock, IndianRupee, Route, Ticket } from 'lucide-react'
+import { reportAPI, systemAPI } from '../services/api'
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -16,23 +17,29 @@ const Dashboard = () => {
   }, [])
 
   const fetchDashboardData = async () => {
-    setStats({
-      todayTickets: 25,
-      totalRevenue: 12500,
-      activeRoutes: 5
-    })
-    setRecentTickets([
-      { id: 'TKT-20260426-25', passenger: 'Demo User', route: 'Mumbai - Pune', seat: 'A1', amount: 500, time: '22:30', status: 'Confirmed' },
-      { id: 'TKT-20260426-24', passenger: 'John Doe', route: 'Delhi - Mumbai', seat: 'B2', amount: 800, time: '22:15', status: 'Confirmed' },
-      { id: 'TKT-20260426-23', passenger: 'Jane Smith', route: 'Bangalore - Chennai', seat: 'C3', amount: 600, time: '22:00', status: 'Confirmed' },
-      { id: 'TKT-20260426-22', passenger: 'Rahul', route: 'Mumbai - Pune', seat: 'A1', amount: 500, time: '20:50', status: 'Confirmed' }
-    ])
-    setHealth({
-      status: 'healthy',
-      database: 'Demo mode',
-      payment_gateway: 'Connected'
-    })
-    setLoading(false)
+    try {
+      setLoading(true)
+      const [statsRes, healthRes] = await Promise.all([
+        reportAPI.getDashboardStats(),
+        systemAPI.getHealth()
+      ])
+
+      if (statsRes.data && statsRes.data.success) {
+        setStats(statsRes.data.stats)
+        setRecentTickets(statsRes.data.recentTickets || [])
+      }
+
+      setHealth({
+        status: healthRes.data?.status || 'unhealthy',
+        database: healthRes.data?.database || 'disconnected',
+        payment_gateway: 'Connected' // Assuming gateway is up if API is up
+      })
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      setHealth({ status: 'unhealthy', database: 'Error', payment_gateway: 'Disconnected' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const statCards = [
