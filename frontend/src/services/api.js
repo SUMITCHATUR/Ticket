@@ -22,7 +22,8 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
-    if (token) {
+    // Only add token for protected endpoints, not for public routes
+    if (token && !config.url.includes('/routes/')) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
