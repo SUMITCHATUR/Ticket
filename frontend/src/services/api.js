@@ -79,10 +79,10 @@ export const busAPI = {
 }
 
 export const routeAPI = {
-  getAll: (params = {}) => api.get('/routes/', { params }),
-  create: (data) => api.post('/routes/', data),
-  getById: (id) => api.get(`/routes/${id}`),
-  getAvailableSeats: (routeId) => api.get(`/routes/${routeId}/available-seats`),
+  getAll: (params = {}) => api.get('/api/routes/', { params }),
+  create: (data) => api.post('/api/routes/', data),
+  getById: (id) => api.get(`/api/routes/${id}`),
+  getAvailableSeats: (routeId) => api.get(`/api/routes/${routeId}/available-seats`),
 }
 
 export const ticketAPI = {
