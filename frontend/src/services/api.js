@@ -8,7 +8,7 @@ export const buildApiUrl = (path = '') => {
 }
 
 // Use environment variable for backend URL, fallback to production URL
-const API_BASE_URL = 'https://ticket-backend-yvyi.onrender.com'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ticket-backend-yvyi.onrender.com'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
