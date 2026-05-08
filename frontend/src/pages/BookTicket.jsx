@@ -320,40 +320,40 @@ const BookTicket = () => {
   return (
     <div className="space-y-4 sm:space-y-5 lg:space-y-6">
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.14),_transparent_24%),linear-gradient(180deg,_#f8fbff_0%,_#eef6ff_42%,_#f8fafc_100%)]" />
-      <section className="relative overflow-hidden rounded-[20px] sm:rounded-[26px] bg-gradient-to-br from-sky-950 via-cyan-900 to-emerald-800 px-3 py-4 sm:px-4 sm:py-5 text-white shadow-xl shadow-cyan-950/20">
-        <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10" />
-        <div className="absolute -bottom-10 left-8 h-36 w-36 rounded-full bg-emerald-300/10" />
-        <div className="relative space-y-4">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">
+      <section className="relative overflow-hidden rounded-[16px] sm:rounded-[20px] bg-gradient-to-br from-sky-950 via-cyan-900 to-emerald-800 px-2 py-3 sm:px-3 sm:py-4 text-white shadow-xl shadow-cyan-950/20">
+        <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />
+        <div className="absolute -bottom-8 left-6 h-28 w-28 rounded-full bg-emerald-300/10" />
+        <div className="relative space-y-3">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
               Maharashtra Route Booking
             </div>
-            <div className="space-y-2">
-              <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl lg:text-3xl">
-                Start Route aur End Route select karke fares instantly dekho
+            <div className="space-y-1">
+              <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl lg:text-2xl">
+                Select Routes & Check Fares
               </h1>
-              <p className="text-sm text-cyan-50/85 sm:text-[15px]">
-                Maharashtra ke multiple city pairs ke routes, ticket price, departure timing aur seat availability ek hi screen par.
+              <p className="text-xs text-cyan-50/85 sm:text-sm">
+                Quick route search with instant fares and seat availability
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-3">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-100/75">Live Routes</p>
-              <p className="mt-1 text-lg font-bold sm:text-xl">{routes.length}</p>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="rounded-xl border border-white/15 bg-white/10 p-2">
+              <p className="text-[8px] uppercase tracking-[0.2em] text-cyan-100/75">Routes</p>
+              <p className="mt-0.5 text-sm font-bold">{routes.length}</p>
             </div>
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-3">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-100/75">Filtered</p>
-              <p className="mt-1 text-lg font-bold sm:text-xl">{filteredRoutes.length}</p>
+            <div className="rounded-xl border border-white/15 bg-white/10 p-2">
+              <p className="text-[8px] uppercase tracking-[0.2em] text-cyan-100/75">Filtered</p>
+              <p className="mt-0.5 text-sm font-bold">{filteredRoutes.length}</p>
             </div>
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-3">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-100/75">Selected Fare</p>
-              <p className="mt-1 text-lg font-bold sm:text-xl">Rs. {fareAmount || 0}</p>
+            <div className="rounded-xl border border-white/15 bg-white/10 p-2">
+              <p className="text-[8px] uppercase tracking-[0.2em] text-cyan-100/75">Fare</p>
+              <p className="mt-0.5 text-sm font-bold">Rs. {fareAmount || 0}</p>
             </div>
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-3">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-100/75">Seat</p>
-              <p className="mt-1 text-lg font-bold sm:text-xl">{selectedSeat?.number || '--'}</p>
+            <div className="rounded-xl border border-white/15 bg-white/10 p-2">
+              <p className="text-[8px] uppercase tracking-[0.2em] text-cyan-100/75">Seat</p>
+              <p className="mt-0.5 text-sm font-bold">{selectedSeat?.number || '--'}</p>
             </div>
           </div>
         </div>
@@ -382,25 +382,25 @@ const BookTicket = () => {
           </div>
         </div>
 
-        <div className="space-y-3 p-4 sm:p-5 lg:p-6">
+        <div className="space-y-2 p-3 sm:p-4 lg:p-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Route search"
-              className="input h-11 w-full rounded-2xl border-slate-200 bg-slate-50 pl-10 text-sm shadow-inner shadow-slate-100"
+              placeholder="Search routes..."
+              className="input h-9 w-full rounded-xl border-slate-200 bg-slate-50 pl-8 text-xs shadow-inner shadow-slate-100"
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className="input h-11 rounded-2xl border-slate-200 bg-white text-sm"
+              className="input h-9 rounded-xl border-slate-200 bg-white text-xs"
             >
-              <option value="">Start Route</option>
+              <option value="">From</option>
               {cityOptions.map((city) => (
                 <option key={`src-${city}`} value={city}>{city}</option>
               ))}
@@ -409,9 +409,9 @@ const BookTicket = () => {
             <select
               value={destinationFilter}
               onChange={(e) => setDestinationFilter(e.target.value)}
-              className="input h-11 rounded-2xl border-slate-200 bg-white text-sm"
+              className="input h-9 rounded-xl border-slate-200 bg-white text-xs"
             >
-              <option value="">End Route</option>
+              <option value="">To</option>
               {cityOptions.map((city) => (
                 <option key={`dst-${city}`} value={city}>{city}</option>
               ))}
@@ -421,7 +421,7 @@ const BookTicket = () => {
               type="date"
               value={journeyDateFilter}
               onChange={(e) => setJourneyDateFilter(e.target.value)}
-              className="input h-11 rounded-2xl border-slate-200 bg-white text-slate-700 text-sm"
+              className="input h-9 rounded-xl border-slate-200 bg-white text-slate-700 text-xs"
               title="Select Journey Date"
               min={new Date().toISOString().split('T')[0]} // Prevent past dates
             />
@@ -433,9 +433,9 @@ const BookTicket = () => {
                 setDestinationFilter('')
                 setJourneyDateFilter('')
               }}
-              className="h-11 rounded-2xl bg-slate-100 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
+              className="h-9 rounded-xl bg-slate-100 px-3 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
             >
-              Clear Filters
+              Clear
             </button>
           </div>
         </div>
@@ -499,52 +499,36 @@ const BookTicket = () => {
                       key={route.route_id}
                       type="button"
                       onClick={() => handleRouteSelect(route)}
-                      className={`group w-full text-left rounded-[18px] border p-3 transition-all ${
+                      className={`group w-full text-left rounded-[12px] border p-2 transition-all ${
                         active
-                          ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-emerald-50 shadow-md shadow-cyan-100'
-                          : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md hover:shadow-slate-200/70'
+                          ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-emerald-50 shadow-sm shadow-cyan-100'
+                          : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-sm hover:shadow-slate-200/70'
                       }`}
                     >
-                      <div className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1">
-                              <p className="font-semibold text-slate-900 text-sm leading-tight">{route.route_name}</p>
-                              <div className="flex items-center gap-1 mt-1 text-xs text-slate-600">
-                                <MapPin className="w-3 h-3" />
-                                <span>{route.source_city}</span>
-                                <span className="text-slate-300">•</span>
-                                <span>{route.destination_city}</span>
-                              </div>
-                            </div>
-                            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 whitespace-nowrap">
-                              {route.status}
-                            </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 text-xs leading-tight truncate">{route.route_name}</p>
+                          <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-600">
+                            <MapPin className="w-2.5 h-2.5" />
+                            <span className="truncate">{route.source_city}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="truncate">{route.destination_city}</span>
                           </div>
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded-xl bg-slate-50 px-2 py-1.5">
-                            <span className="block text-[10px] uppercase tracking-[0.18em] text-slate-400">Date</span>
-                            <span className="font-medium text-slate-800 text-xs">{route.travel_date}</span>
-                          </div>
-                          <div className="rounded-xl bg-slate-50 px-2 py-1.5">
-                            <span className="block text-[10px] uppercase tracking-[0.18em] text-slate-400">Time</span>
-                            <span className="font-medium text-slate-800 text-xs">{route.departure_time}</span>
-                          </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-600 whitespace-nowrap">
+                            {route.status}
+                          </span>
+                          <p className="text-sm font-bold text-cyan-700">Rs. {Number(route.base_fare)}</p>
                         </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1 text-xs text-slate-500">
-                            <Calendar className="w-3 h-3" />
-                            <span>{route.estimated_time_hours} hrs</span>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-cyan-700">Rs. {Number(route.base_fare)}</p>
-                            <p className="text-xs font-medium text-slate-400 group-hover:text-cyan-600">
-                              {active ? 'Selected' : 'Tap to select'}
-                            </p>
-                          </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        <div className="flex items-center gap-1 text-[9px] text-slate-500">
+                          <Calendar className="w-2.5 h-2.5" />
+                          <span>{route.estimated_time_hours} hrs</span>
+                        </div>
+                        <div className="text-[9px] text-slate-400">
+                          {route.departure_time}
                         </div>
                       </div>
                     </button>
@@ -561,52 +545,36 @@ const BookTicket = () => {
                     key={route.route_id}
                     type="button"
                     onClick={() => handleRouteSelect(route)}
-                    className={`group w-full text-left rounded-[18px] border p-3 transition-all ${
+                    className={`group w-full text-left rounded-[12px] border p-2 transition-all ${
                       active
-                        ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-emerald-50 shadow-md shadow-cyan-100'
-                        : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md hover:shadow-slate-200/70'
+                        ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-emerald-50 shadow-sm shadow-cyan-100'
+                        : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-sm hover:shadow-slate-200/70'
                     }`}
                   >
-                    <div className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1">
-                              <p className="font-semibold text-slate-900 text-sm leading-tight">{route.route_name}</p>
-                              <div className="flex items-center gap-1 mt-1 text-xs text-slate-600">
-                                <MapPin className="w-3 h-3" />
-                                <span>{route.source_city}</span>
-                                <span className="text-slate-300">•</span>
-                                <span>{route.destination_city}</span>
-                              </div>
-                            </div>
-                            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 whitespace-nowrap">
-                              {route.status}
-                            </span>
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 text-xs leading-tight truncate">{route.route_name}</p>
+                          <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-600">
+                            <MapPin className="w-2.5 h-2.5" />
+                            <span className="truncate">{route.source_city}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="truncate">{route.destination_city}</span>
                           </div>
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded-xl bg-slate-50 px-2 py-1.5">
-                            <span className="block text-[10px] uppercase tracking-[0.18em] text-slate-400">Date</span>
-                            <span className="font-medium text-slate-800 text-xs">{route.travel_date}</span>
-                          </div>
-                          <div className="rounded-xl bg-slate-50 px-2 py-1.5">
-                            <span className="block text-[10px] uppercase tracking-[0.18em] text-slate-400">Time</span>
-                            <span className="font-medium text-slate-800 text-xs">{route.departure_time}</span>
-                          </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-600 whitespace-nowrap">
+                            {route.status}
+                          </span>
+                          <p className="text-sm font-bold text-cyan-700">Rs. {Number(route.base_fare)}</p>
                         </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1 text-xs text-slate-500">
-                            <Calendar className="w-3 h-3" />
-                            <span>{route.estimated_time_hours} hrs</span>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-cyan-700">Rs. {Number(route.base_fare)}</p>
-                            <p className="text-xs font-medium text-slate-400 group-hover:text-cyan-600">
-                              {active ? 'Selected' : 'Tap to select'}
-                            </p>
-                          </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        <div className="flex items-center gap-1 text-[9px] text-slate-500">
+                          <Calendar className="w-2.5 h-2.5" />
+                          <span>{route.estimated_time_hours} hrs</span>
+                        </div>
+                        <div className="text-[9px] text-slate-400">
+                          {route.departure_time}
                         </div>
                       </div>
                   </button>
