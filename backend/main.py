@@ -48,6 +48,7 @@ def initialize_app():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://sumitchatur-ticket.vercel.app",
         "https://ticket-frontend-seven.vercel.app",
         "https://ti-cket.vercel.app",
         "https://ticketsbus.netlify.app",
