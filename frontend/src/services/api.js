@@ -4,11 +4,14 @@ import toast from 'react-hot-toast'
 // Netlify and local development both use same-origin /api proxying.
 export const buildApiUrl = (path = '') => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  return `https://ticket-backend-yvyi.onrender.com${normalizedPath}`
+  return `${API_BASE_URL}${normalizedPath}`
 }
 
+// Use environment variable for backend URL, fallback to production URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ticket-backend-yvyi.onrender.com'
+
 const api = axios.create({
-  baseURL: 'https://ticket-backend-yvyi.onrender.com',
+  baseURL: API_BASE_URL,
   timeout: 20000, // Increased timeout for mobile connections
   headers: {
     'Content-Type': 'application/json',
