@@ -3,10 +3,10 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
-  const backendTarget = env.VITE_API_URL || env.BACKEND_URL || 'http://localhost:8000';
-  
-  console.log(`Proxying /api to ${backendTarget}`);
+  const env = loadEnv(mode, process.cwd(), '')
+  const backendTarget = env.VITE_API_URL || env.BACKEND_URL || 'http://localhost:8001'
+
+  console.log(`Proxying /api to ${backendTarget}`)
 
   return {
     base: '/',
@@ -23,9 +23,9 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: backendTarget,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, '')
-        }
-      }
-    }
+          rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+      },
+    },
   }
 })

@@ -28,6 +28,8 @@ const INITIAL_PASSENGER = {
 
 const BookTicket = () => {
   const seatSectionRef = useRef(null)
+  const routeCacheRef = useRef(null)
+  const seatCacheRef = useRef(new Map())
   const [routes, setRoutes] = useState([])
   const [loadingRoutes, setLoadingRoutes] = useState(true)
   const [loadingSeats, setLoadingSeats] = useState(false)
@@ -80,10 +82,18 @@ const BookTicket = () => {
   const fareAmount = selectedRoute ? Number(selectedRoute.base_fare || 0) : 0
 
   const fetchRoutes = async () => {
+    if (routeCacheRef.current) {
+      setRoutes(routeCacheRef.current)
+      setLoadingRoutes(false)
+      return
+    }
+
     try {
       setLoadingRoutes(true)
       const response = await routeAPI.getAll()
-      setRoutes(Array.isArray(response.data) ? response.data : [])
+      const data = Array.isArray(response.data) ? response.data : []
+      routeCacheRef.current = data
+      setRoutes(data)
     } catch (error) {
       console.error('Error fetching routes:', error)
       toast.error('⚠️ Routes load करने में issue आ रहा है!\nकृपया backend check करें।\n\nIssue loading routes!\nPlease check backend.', {
@@ -103,6 +113,14 @@ const BookTicket = () => {
   }
 
   const fetchSeats = async (route) => {
+    const cacheKey = route.route_id
+
+    if (seatCacheRef.current.has(cacheKey)) {
+      setSeats(seatCacheRef.current.get(cacheKey))
+      setLoadingSeats(false)
+      return
+    }
+
     try {
       setLoadingSeats(true)
       setSelectedSeat(null)
@@ -115,6 +133,7 @@ const BookTicket = () => {
         bus_number: seat.bus_number,
         status: (seat.status || 'available').toLowerCase()
       }))
+      seatCacheRef.current.set(cacheKey, normalizedSeats)
       setSeats(normalizedSeats)
     } catch (error) {
       console.error('Error fetching seats:', error)

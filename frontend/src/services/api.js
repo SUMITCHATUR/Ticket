@@ -1,18 +1,30 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-// Netlify and local development both use same-origin /api proxying.
+const resolveApiBaseUrl = () => {
+  const envUrl = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : ''
+  if (envUrl) return envUrl.replace(/\/$/, '')
+
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return '/api'
+    }
+  }
+
+  return 'https://ticket-backend-yvyi.onrender.com'
+}
+
 export const buildApiUrl = (path = '') => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
   return `${API_BASE_URL}${normalizedPath}`
 }
 
-// Hardcoded backend URL to ensure it works
-const API_BASE_URL = 'https://ticket-backend-yvyi.onrender.com'
+const API_BASE_URL = resolveApiBaseUrl()
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 20000, // Increased timeout for mobile connections
+  timeout: 12000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -76,10 +88,10 @@ export const busAPI = {
 }
 
 export const routeAPI = {
-  getAll: (params = {}) => api.get('/api/routes/', { params }),
-  create: (data) => api.post('/api/routes/', data),
-  getById: (id) => api.get(`/api/routes/${id}`),
-  getAvailableSeats: (routeId) => api.get(`/api/routes/${routeId}/available-seats`),
+  getAll: (params = {}) => api.get('/routes/', { params }),
+  create: (data) => api.post('/routes/', data),
+  getById: (id) => api.get(`/routes/${id}`),
+  getAvailableSeats: (routeId) => api.get(`/routes/${routeId}/available-seats`),
 }
 
 export const ticketAPI = {

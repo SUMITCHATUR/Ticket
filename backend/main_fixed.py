@@ -14,6 +14,7 @@ from datetime import date, time, datetime, timedelta
 import logging
 import urllib.parse
 import os
+import threading
 import qrcode
 import base64
 from io import BytesIO
@@ -21,6 +22,9 @@ from io import BytesIO
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+DEMO_SEED_LOCK = threading.Lock()
+DEMO_SEED_COMPLETED = False
 
 app = FastAPI(
     title="Bus Ticket Booking System",
@@ -64,53 +68,64 @@ class CombinedBookingRequest(BaseModel):
     payment_request: ValidatorPaymentRequest
 
 def ensure_demo_routes(db: Session):
-    """Ensure demo routes exist"""
-    existing = db.execute(text("SELECT COUNT(*) FROM routes")).scalar()
-    if existing > 0:
+    """Ensure demo routes exist once during startup."""
+    global DEMO_SEED_COMPLETED
+
+    if DEMO_SEED_COMPLETED:
         return
-    
-    demo_routes = [
-        {
-            "route_name": "Mumbai to Pune Express",
-            "source_city": "Mumbai",
-            "destination_city": "Pune",
-            "distance_km": 150,
-            "base_fare": 550,
-            "travel_date": "2024-04-22",
-            "departure_time": "14:30:00",
-            "arrival_time": "17:30:00",
-            "status": "Active"
-        },
-        {
-            "route_name": "Mumbai to Nashik",
-            "source_city": "Mumbai",
-            "destination_city": "Nashik",
-            "distance_km": 180,
-            "base_fare": 420,
-            "travel_date": "2024-04-22",
-            "departure_time": "09:00:00",
-            "arrival_time": "12:30:00",
-            "status": "Active"
-        },
-        {
-            "route_name": "Mumbai to Ahmedabad",
-            "source_city": "Mumbai",
-            "destination_city": "Ahmedabad",
-            "distance_km": 525,
-            "base_fare": 850,
-            "travel_date": "2024-04-22",
-            "departure_time": "08:00:00",
-            "arrival_time": "18:00:00",
-            "status": "Active"
-        }
-    ]
-    
-    for route_data in demo_routes:
-        route = models.Route(**route_data)
-        db.add(route)
-    
-    db.commit()
-    logger.info("Demo routes created")
+
+    with DEMO_SEED_LOCK:
+        if DEMO_SEED_COMPLETED:
+            return
+
+        existing = db.execute(text("SELECT COUNT(*) FROM routes")).scalar()
+        if existing > 0:
+            DEMO_SEED_COMPLETED = True
+            return
+
+        demo_routes = [
+            {
+                "route_name": "Mumbai to Pune Express",
+                "source_city": "Mumbai",
+                "destination_city": "Pune",
+                "distance_km": 150,
+                "base_fare": 550,
+                "travel_date": "2024-04-22",
+                "departure_time": "14:30:00",
+                "arrival_time": "17:30:00",
+                "status": "Active"
+            },
+            {
+                "route_name": "Mumbai to Nashik",
+                "source_city": "Mumbai",
+                "destination_city": "Nashik",
+                "distance_km": 180,
+                "base_fare": 420,
+                "travel_date": "2024-04-22",
+                "departure_time": "09:00:00",
+                "arrival_time": "12:30:00",
+                "status": "Active"
+            },
+            {
+                "route_name": "Mumbai to Ahmedabad",
+                "source_city": "Mumbai",
+                "destination_city": "Ahmedabad",
+                "distance_km": 525,
+                "base_fare": 850,
+                "travel_date": "2024-04-22",
+                "departure_time": "08:00:00",
+                "arrival_time": "18:00:00",
+                "status": "Active"
+            }
+        ]
+
+        for route_data in demo_routes:
+            route = models.Route(**route_data)
+            db.add(route)
+
+        db.commit()
+        DEMO_SEED_COMPLETED = True
+        logger.info("Demo routes created")
 
 @app.get("/")
 def read_root():
@@ -166,7 +181,7 @@ def get_routes(db: Session = Depends(get_db)):
         WHERE r.status = 'Active'
         ORDER BY r.route_name
     """)
-    
+
     result = db.execute(query)
     routes = result.fetchall()
     

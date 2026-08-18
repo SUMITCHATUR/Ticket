@@ -14,6 +14,7 @@ from datetime import date, time, datetime, timedelta
 import logging
 import urllib.parse
 import os
+import threading
 import qrcode
 import base64
 from io import BytesIO
@@ -21,6 +22,9 @@ from io import BytesIO
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+DEMO_SEED_LOCK = threading.Lock()
+DEMO_SEED_COMPLETED = False
 
 app = FastAPI(
     title="Bus Ticket Booking System",
@@ -356,64 +360,77 @@ def ensure_core_demo_data(db: Session):
 
 
 def ensure_demo_routes(db: Session):
-    ensure_core_demo_data(db)
+    global DEMO_SEED_COMPLETED
 
-    route_count = db.query(models.Route).count()
-    bus_count = db.query(models.Bus).count()
-    if bus_count == 0 or route_count >= len(DEMO_ROUTE_TEMPLATES):
+    if DEMO_SEED_COMPLETED:
         return
 
-    buses = db.query(models.Bus).order_by(models.Bus.bus_id).all()
-    if not buses:
-        return
+    with DEMO_SEED_LOCK:
+        if DEMO_SEED_COMPLETED:
+            return
 
-    created = False
-    for index, template in enumerate(DEMO_ROUTE_TEMPLATES):
-        route_name, source_city, destination_city, distance_km, hours, fare, dep_hour, dep_minute = template
-        existing_route = db.query(models.Route).filter(
-            models.Route.source_city == source_city,
-            models.Route.destination_city == destination_city
-        ).first()
+        ensure_core_demo_data(db)
 
-        if existing_route:
-            continue
+        route_count = db.query(models.Route).count()
+        bus_count = db.query(models.Bus).count()
+        if bus_count == 0:
+            DEMO_SEED_COMPLETED = True
+            return
 
-        travel_date = date.today() + timedelta(days=(index % 5) + 1)
-        departure_dt = datetime.combine(travel_date, time(dep_hour % 24, dep_minute % 60))
-        arrival_dt = departure_dt + timedelta(hours=hours)
+        buses = db.query(models.Bus).order_by(models.Bus.bus_id).all()
+        if not buses:
+            DEMO_SEED_COMPLETED = True
+            return
 
-        route = models.Route(
-            route_name=route_name,
-            source_city=source_city,
-            destination_city=destination_city,
-            distance_km=distance_km,
-            estimated_time_hours=hours,
-            base_fare=fare,
-            travel_date=travel_date,
-            departure_time=departure_dt.time(),
-            arrival_time=arrival_dt.time(),
-            status="Scheduled"
-        )
-        db.add(route)
-        db.flush()
+        created = False
+        for index, template in enumerate(DEMO_ROUTE_TEMPLATES):
+            route_name, source_city, destination_city, distance_km, hours, fare, dep_hour, dep_minute = template
+            existing_route = db.query(models.Route).filter(
+                models.Route.source_city == source_city,
+                models.Route.destination_city == destination_city
+            ).first()
 
-        bus = buses[index % len(buses)]
-        existing_bus_route = db.query(models.BusRoute).filter(
-            models.BusRoute.bus_id == bus.bus_id,
-            models.BusRoute.route_id == route.route_id
-        ).first()
-        if not existing_bus_route:
-            db.add(models.BusRoute(
-                bus_id=bus.bus_id,
-                route_id=route.route_id,
-                available_capacity=bus.available_seats,
-                total_capacity=bus.total_seats
-            ))
+            if existing_route:
+                continue
 
-        created = True
+            travel_date = date.today() + timedelta(days=(index % 5) + 1)
+            departure_dt = datetime.combine(travel_date, time(dep_hour % 24, dep_minute % 60))
+            arrival_dt = departure_dt + timedelta(hours=hours)
 
-    if created:
-        db.commit()
+            route = models.Route(
+                route_name=route_name,
+                source_city=source_city,
+                destination_city=destination_city,
+                distance_km=distance_km,
+                estimated_time_hours=hours,
+                base_fare=fare,
+                travel_date=travel_date,
+                departure_time=departure_dt.time(),
+                arrival_time=arrival_dt.time(),
+                status="Scheduled"
+            )
+            db.add(route)
+            db.flush()
+
+            bus = buses[index % len(buses)]
+            existing_bus_route = db.query(models.BusRoute).filter(
+                models.BusRoute.bus_id == bus.bus_id,
+                models.BusRoute.route_id == route.route_id
+            ).first()
+            if not existing_bus_route:
+                db.add(models.BusRoute(
+                    bus_id=bus.bus_id,
+                    route_id=route.route_id,
+                    available_capacity=bus.available_seats,
+                    total_capacity=bus.total_seats
+                ))
+
+            created = True
+
+        if created:
+            db.commit()
+
+        DEMO_SEED_COMPLETED = True
 
 # Root endpoint
 @app.get("/")
@@ -492,12 +509,6 @@ def create_bus(bus: BusBase, db: Session = Depends(get_db)):
 @app.get("/routes/")
 @app.get("/api/routes/")
 def get_routes(db: Session = Depends(get_db)):
-    try:
-        ensure_demo_routes(db)
-    except Exception as exc:
-        logger.error(f"Demo route seeding failed: {exc}")
-        db.rollback()
-
     try:
         routes = db.query(models.Route).order_by(
             models.Route.source_city.asc(),
